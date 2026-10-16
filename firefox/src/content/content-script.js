@@ -590,6 +590,7 @@
       row("ISP", data.isp),
       row("Kullanım türü", data.usageType),
       row("Alan adı", data.domain),
+      ...(Array.isArray(data.hostnames) && data.hostnames.length ? [row("Hostname", data.hostnames.join(", "))] : []),
     );
     parts.push(dl);
 

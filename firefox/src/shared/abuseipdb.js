@@ -80,6 +80,7 @@ export function normalizeCheckResponse(body, requestedIp, maxAgeInDays = DEFAULT
     isp: text(data.isp),
     usageType: text(data.usageType),
     domain: text(data.domain),
+    hostnames: Array.isArray(data.hostnames) ? data.hostnames.map((h) => text(h)).filter(Boolean).slice(0, 5) : [],
     isWhitelisted: bool(data.isWhitelisted),
     isTor: bool(data.isTor),
     maxAgeInDays,

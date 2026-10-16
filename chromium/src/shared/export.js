@@ -11,6 +11,7 @@
   const FIELDS = {
     queriedAt: { header: "Sorgu zamanı", get: (r) => formatDateTime(r.fetchedAt) },
     ip: { header: "IP", get: (r) => r.data.ipAddress },
+    ipDefanged: { header: "IP (defang)", get: (r) => defang(r.data.ipAddress) },
     score: { header: "Abuse skoru", get: (r) => r.data.abuseConfidenceScore },
     risk: { header: "Risk", get: (r) => riskLabel(r.data.abuseConfidenceScore) },
     totalReports: { header: "Rapor sayısı", get: (r) => r.data.totalReports },
@@ -21,6 +22,7 @@
     isp: { header: "ISP", get: (r) => r.data.isp },
     usageType: { header: "Kullanım türü", get: (r) => r.data.usageType },
     domain: { header: "Alan adı", get: (r) => r.data.domain },
+    hostnames: { header: "Hostname", get: (r) => (Array.isArray(r.data.hostnames) && r.data.hostnames.length ? r.data.hostnames.join(", ") : null) },
     isTor: { header: "Tor", get: (r) => yesNo(r.data.isTor) },
     isWhitelisted: { header: "Beyaz liste", get: (r) => yesNo(r.data.isWhitelisted) },
     period: { header: "Rapor dönemi (gün)", get: (r) => r.data.maxAgeInDays },
@@ -57,6 +59,12 @@
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return null;
     return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  // 203.0.113.45 -> 203[.]0[.]113[.]45, 2001:db8::1 -> 2001[:]db8[:][:]1 (safe to paste in tickets/mail).
+  function defang(ip) {
+    if (typeof ip !== "string") return null;
+    return ip.includes(":") ? ip.replace(/:/g, "[:]") : ip.replace(/\./g, "[.]");
   }
 
   function riskLabel(score) {

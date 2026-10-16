@@ -36,7 +36,7 @@ test("normalizeCheckResponse maps documented fields", () => {
   assert.deepEqual(data, {
     ipAddress: "203.0.113.200", abuseConfidenceScore: 87, totalReports: 42, numDistinctUsers: 17,
     lastReportedAt: "2026-10-15T08:30:00.000Z", countryCode: "NL", isp: "Synthetic Hosting B.V.",
-    usageType: "Data Center/Web Hosting/Transit", domain: "synthetic.example", isWhitelisted: false, isTor: false,
+    usageType: "Data Center/Web Hosting/Transit", domain: "synthetic.example", hostnames: [], isWhitelisted: false, isTor: false,
     maxAgeInDays: MAX_AGE_IN_DAYS,
   });
 });
@@ -78,4 +78,10 @@ test("429 honours Retry-After, then X-RateLimit-Reset, then a default, with a ca
   assert.equal(errorFromResponse(429, headers({}), now).retryAt, now + 60_000);
   assert.equal(errorFromResponse(429, headers({ "Retry-After": "9999999" }), now).retryAt, now + 86_400_000);
   assert.equal(errorFromResponse(429, headers({ "Retry-After": "Wed, 21 Oct 2015 07:28:00 GMT" }), now).retryAt, now + 60_000);
+});
+
+test("hostnames are kept as a short list of strings", () => {
+  const data = normalizeCheckResponse({ data: { ipAddress: "203.0.113.200", hostnames: ["a.example", 5, "", "b.example", "c", "d", "e", "f"] } }, "203.0.113.200");
+  assert.deepEqual(data.hostnames, ["a.example", "b.example", "c", "d", "e"]);
+  assert.deepEqual(normalizeCheckResponse({ data: { ipAddress: "203.0.113.200", hostnames: "x" } }, "203.0.113.200").hostnames, []);
 });

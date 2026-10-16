@@ -84,3 +84,11 @@ test("normalizeTemplate drops unknown fields and falls back to the default", () 
   const many = { columns: Array.from({ length: 50 }, () => ({ kind: "field", field: "ip" })) };
   assert.equal(T.normalizeTemplate(many).columns.length, T.MAX_COLUMNS);
 });
+
+test("defanged IP and hostname fields", () => {
+  const t = { columns: [{ kind: "field", field: "ipDefanged" }, { kind: "field", field: "hostnames" }], empty: "blank", separator: "tab" };
+  const withHosts = { ...result, data: { ...result.data, hostnames: ["mail.example-hosting.test", "www.example-hosting.test"] } };
+  assert.equal(T.buildRow(t, withHosts), "203[.]0[.]113[.]45\tmail.example-hosting.test, www.example-hosting.test");
+  const v6 = { ...result, data: { ...result.data, ipAddress: "2001:db8::1", hostnames: [] } };
+  assert.equal(T.buildRow(t, v6), "2001[:]db8[:][:]1\t");
+});
