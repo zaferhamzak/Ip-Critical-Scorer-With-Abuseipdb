@@ -145,6 +145,21 @@ ext.runtime.onMessage.addListener((message, sender, sendResponse) => {
       updateHistory((list) => (ips ? removeEntries(list, ips) : []), { evenIfDisabled: true }).then(() => sendResponse({ ok: true }));
       return true;
     }
+    case "getKnownIps":
+      // Scores of previously looked-up IPs for on-page highlighting (opt-in).
+      ext.storage.local
+        .get([STORAGE_KEYS.history, STORAGE_KEYS.historyDays, STORAGE_KEYS.historyEnabled, STORAGE_KEYS.highlightKnown])
+        .then((stored) => {
+          const settings = mergeSettings(stored);
+          if (!settings.highlightKnown) return sendResponse({ enabled: false, scores: {} });
+          const scores = {};
+          for (const e of pruneHistory(stored[STORAGE_KEYS.history], settings.historyDays, Date.now())) {
+            scores[e.ip] = typeof e.data.abuseConfidenceScore === "number" ? e.data.abuseConfidenceScore : null;
+          }
+          sendResponse({ enabled: true, scores });
+        })
+        .catch(() => sendResponse({ enabled: false, scores: {} }));
+      return true;
     case "openHistory":
       ext.tabs.create({ url: ext.runtime.getURL("src/history/history.html") });
       return false;

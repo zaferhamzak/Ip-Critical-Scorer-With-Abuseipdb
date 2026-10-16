@@ -198,24 +198,33 @@
   const IPV6_CANDIDATE = /(?<![0-9A-Za-z:])[0-9A-Fa-f]{0,4}(?::[0-9A-Fa-f]{0,4}){2,7}(?:\.\d{1,3}){0,3}(?![0-9A-Za-z:])/g;
 
   /**
+   * Every valid IP token in `text` with its position: [{ index, length, analysis }],
+   * in order of appearance (duplicates included). Used for page highlighting.
+   */
+  function findIpTokens(text) {
+    if (typeof text !== "string" || text.length === 0) return [];
+    const found = [];
+    for (const re of [IPV4_CANDIDATE, IPV6_CANDIDATE]) {
+      re.lastIndex = 0;
+      for (const m of text.matchAll(re)) {
+        const analysis = analyzeSelection(m[0]);
+        if (analysis) found.push({ index: m.index, length: m[0].length, analysis });
+      }
+    }
+    return found.sort((a, b) => a.index - b.index);
+  }
+
+  /**
    * Finds every distinct IP in a block of text (log line, table rows), in order of
    * appearance. Returns { ips: [analysis...], truncated } with at most 50 entries.
    */
   function extractIps(text) {
     if (typeof text !== "string" || text.length === 0) return { ips: [], truncated: false };
-    const source = text.slice(0, MAX_EXTRACT_TEXT);
-    const found = [];
-    for (const re of [IPV4_CANDIDATE, IPV6_CANDIDATE]) {
-      re.lastIndex = 0;
-      for (const m of source.matchAll(re)) found.push({ index: m.index, token: m[0] });
-    }
-    found.sort((a, b) => a.index - b.index);
     const seen = new Set();
     const ips = [];
     let truncated = text.length > MAX_EXTRACT_TEXT;
-    for (const { token } of found) {
-      const analysis = analyzeSelection(token);
-      if (!analysis || seen.has(analysis.ip)) continue;
+    for (const { analysis } of findIpTokens(text.slice(0, MAX_EXTRACT_TEXT))) {
+      if (seen.has(analysis.ip)) continue;
       if (ips.length === MAX_EXTRACT_IPS) {
         truncated = true;
         break;
@@ -232,5 +241,5 @@
     return `https://www.abuseipdb.com/check/${parsed.ip}`;
   }
 
-  globalThis.IpTools = Object.freeze({ MAX_INPUT_LENGTH, MAX_EXTRACT_IPS, cleanSelection, parseIp, analyzeSelection, extractIps, detailUrl });
+  globalThis.IpTools = Object.freeze({ MAX_INPUT_LENGTH, MAX_EXTRACT_IPS, cleanSelection, parseIp, analyzeSelection, extractIps, findIpTokens, detailUrl });
 })();

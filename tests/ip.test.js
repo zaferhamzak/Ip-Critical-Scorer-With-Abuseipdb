@@ -114,3 +114,11 @@ test("extractIps caps the result at 50 and reports truncation", () => {
   assert.equal(r.truncated, true);
   assert.deepEqual(extractIps("no addresses here 12:30:45"), { ips: [], truncated: false });
 });
+
+test("findIpTokens returns positions of every valid IP, defanged ones included", () => {
+  const { findIpTokens } = globalThis.IpTools;
+  const text = "a 8.8.8.8 b 1.1.1[.]1 c 8.8.8.8 d 300.1.1.1";
+  const tokens = findIpTokens(text);
+  assert.deepEqual(tokens.map((t) => [t.index, t.length, t.analysis.ip]), [[2, 7, "8.8.8.8"], [12, 9, "1.1.1.1"], [24, 7, "8.8.8.8"]]);
+  assert.equal(text.slice(12, 21), "1.1.1[.]1");
+});

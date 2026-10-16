@@ -23,11 +23,16 @@ function showMessage(text, kind = "ok") {
 
 async function renderSettings() {
   const stored = await ext.storage.local.get([
-    STORAGE_KEYS.cacheTtlMinutes, STORAGE_KEYS.maxAgeInDays, STORAGE_KEYS.historyEnabled, STORAGE_KEYS.historyDays,
+    STORAGE_KEYS.cacheTtlMinutes, STORAGE_KEYS.maxAgeInDays, STORAGE_KEYS.historyEnabled, STORAGE_KEYS.historyDays, STORAGE_KEYS.highlightKnown,
   ]);
   const settings = mergeSettings(stored);
   $("history-enabled").checked = settings.historyEnabled;
   $("history-days").value = String(settings.historyDays);
+  $("highlight-known").checked = settings.highlightKnown;
+  if (!(globalThis.CSS?.highlights && typeof globalThis.Highlight === "function")) {
+    $("highlight-known").disabled = true;
+    $("highlight-note").textContent = "Bu tarayıcı sayfa işaretlemeyi (CSS Custom Highlight API) desteklemiyor.";
+  }
   $("cache-ttl").value = String(settings.cacheTtlMinutes);
   $("max-age").value = String(settings.maxAgeInDays);
 }
@@ -86,7 +91,11 @@ async function saveHistorySettings(event) {
     return;
   }
   const enabled = $("history-enabled").checked;
-  await ext.storage.local.set({ [STORAGE_KEYS.historyEnabled]: enabled, [STORAGE_KEYS.historyDays]: days });
+  await ext.storage.local.set({
+    [STORAGE_KEYS.historyEnabled]: enabled,
+    [STORAGE_KEYS.historyDays]: days,
+    [STORAGE_KEYS.highlightKnown]: $("highlight-known").checked && !$("highlight-known").disabled,
+  });
   showMessage(enabled ? `Geçmiş ${days} gün saklanacak.` : "Geçmiş kaydı kapatıldı. Mevcut kayıtları geçmiş sayfasından silebilirsiniz.");
 }
 

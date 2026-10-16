@@ -9,7 +9,7 @@
   const ext = globalThis.browser ?? globalThis.chrome;
   globalThis.__abuseIpdbLookupLoaded = true;
 
-  const { analyzeSelection, extractIps, detailUrl, MAX_INPUT_LENGTH } = globalThis.IpTools;
+  const { analyzeSelection, extractIps, findIpTokens, detailUrl, MAX_INPUT_LENGTH } = globalThis.IpTools;
   const BULK_AUTOSTART = 10; // above this many public IPs, ask before spending quota
   const BULK_CONCURRENCY = 2;
   const MAX_SELECTION_TEXT = 20000;
@@ -763,6 +763,7 @@
     for (const item of queue) item.response = { status: "skipped" };
     ctx.phase = "done";
     renderBulk(ctx);
+    refreshKnownIps();
   }
 
   async function sendMessage(message) {
@@ -785,6 +786,115 @@
     }
     if (seq !== requestSeq) return; // card closed or a newer request started
     render(analysis, response);
+    if (response?.status === "ok") refreshKnownIps();
+  }
+
+  // ---------- highlighting previously looked-up IPs (opt-in) ----------
+  // Uses the CSS Custom Highlight API: the page DOM is never modified, so SIEM apps keep
+  // working. Page text is scanned locally only; nothing is sent anywhere.
+
+  const HIGHLIGHT_NAMES = { high: "ipcs-known-high", medium: "ipcs-known-medium", low: "ipcs-known-low", none: "ipcs-known-none" };
+  const MAX_TEXT_NODES = 20000;
+  const MAX_HIGHLIGHTS = 3000;
+  const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEXTAREA", "INPUT", "SELECT", "OPTION", "TEMPLATE", "ABUSEIPDB-LOOKUP"]);
+  const highlightSupported = typeof CSS !== "undefined" && CSS.highlights && typeof Highlight === "function";
+  let highlightStyleAdded = false;
+  let highlightTimer = null;
+  let knownScores = null;
+  let observer = null;
+
+  function addHighlightStyles() {
+    if (highlightStyleAdded) return;
+    highlightStyleAdded = true;
+    const css = [
+      ["high", "#dc2626", "rgba(220, 38, 38, 0.14)"],
+      ["medium", "#d97706", "rgba(217, 119, 6, 0.14)"],
+      ["low", "#16a34a", "rgba(22, 163, 74, 0.12)"],
+      ["none", "#64748b", "rgba(100, 116, 139, 0.12)"],
+    ].map(([sev, color, bg]) => `::highlight(${HIGHLIGHT_NAMES[sev]}) { background-color: ${bg}; text-decoration: underline 2px ${color}; }`).join("\n");
+    try {
+      const sheet = new window.CSSStyleSheet();
+      sheet.replaceSync(css);
+      document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+    } catch {
+      const style = document.createElement("style");
+      style.textContent = css;
+      (document.head || document.documentElement).append(style);
+    }
+  }
+
+  function scanAndHighlight() {
+    if (!knownScores || Object.keys(knownScores).length === 0) {
+      for (const name of Object.values(HIGHLIGHT_NAMES)) CSS.highlights.delete(name);
+      return;
+    }
+    const ranges = { high: [], medium: [], low: [], none: [] };
+    let total = 0;
+    const walker = document.createTreeWalker(document.body || document.documentElement, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const parent = node.parentElement;
+        if (!parent || SKIP_TAGS.has(parent.tagName) || parent.isContentEditable) return NodeFilter.FILTER_REJECT;
+        return /\d|:/.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+      },
+    });
+    let visited = 0;
+    for (let node = walker.nextNode(); node && visited < MAX_TEXT_NODES && total < MAX_HIGHLIGHTS; node = walker.nextNode()) {
+      visited += 1;
+      for (const token of findIpTokens(node.nodeValue)) {
+        if (!(token.analysis.ip in knownScores)) continue;
+        const range = new Range();
+        range.setStart(node, token.index);
+        range.setEnd(node, token.index + token.length);
+        ranges[severity(knownScores[token.analysis.ip])].push(range);
+        total += 1;
+      }
+    }
+    for (const [sev, list] of Object.entries(ranges)) {
+      if (list.length) CSS.highlights.set(HIGHLIGHT_NAMES[sev], new Highlight(...list));
+      else CSS.highlights.delete(HIGHLIGHT_NAMES[sev]);
+    }
+  }
+
+  // Throttled: pages that update constantly still get a rescan at least every `delay` ms.
+  function scheduleHighlight(delay = 600) {
+    if (highlightTimer && delay > 0) return;
+    clearTimeout(highlightTimer);
+    highlightTimer = setTimeout(() => {
+      highlightTimer = null;
+      try {
+        scanAndHighlight();
+      } catch {
+        // A page that blocks the API or changes mid-scan must never break lookups.
+      }
+    }, delay);
+  }
+
+  async function refreshKnownIps() {
+    if (!highlightSupported) return;
+    let known;
+    try {
+      known = await sendMessage({ type: "getKnownIps" });
+    } catch {
+      return;
+    }
+    if (!known?.enabled) {
+      knownScores = null;
+      observer?.disconnect();
+      observer = null;
+      for (const name of Object.values(HIGHLIGHT_NAMES)) CSS.highlights.delete(name);
+      return;
+    }
+    knownScores = known.scores || {};
+    addHighlightStyles();
+    if (!observer) {
+      observer = new MutationObserver((records) => {
+        // Ignore our own card/button updates.
+        if (records.every((r) => host && (r.target === host || host.contains(r.target)))) return;
+        scheduleHighlight(800);
+      });
+      observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+    }
+    scheduleHighlight(0);
   }
 
   // ---------- events ----------
@@ -821,6 +931,11 @@
     hideButton();
     if (card) place(card, anchorRect());
   });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") refreshKnownIps();
+  });
+  refreshKnownIps();
 
   ext.runtime.onMessage.addListener((message, sender) => {
     if (sender.id !== ext.runtime.id || message?.type !== "lookupSelection") return;
