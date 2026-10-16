@@ -25,6 +25,7 @@
     isWhitelisted: { header: "Beyaz liste", get: (r) => yesNo(r.data.isWhitelisted) },
     period: { header: "Rapor dönemi (gün)", get: (r) => r.data.maxAgeInDays },
     detailUrl: { header: "AbuseIPDB bağlantısı", get: (r) => r.detailUrl },
+    note: { header: "Not", get: (r) => r.note },
   };
 
   const EMPTY_VALUES = { blank: "", unknown: "Bilinmiyor", dash: "-" };
@@ -33,7 +34,7 @@
   const DEFAULT_TEMPLATE = Object.freeze({
     columns: [
       "queriedAt", "ip", "score", "risk", "totalReports", "distinctUsers",
-      "lastReportedAt", "countryName", "isp", "usageType", "domain", "detailUrl",
+      "lastReportedAt", "countryName", "isp", "usageType", "domain", "detailUrl", "note",
     ].map((field) => ({ kind: "field", field })),
     empty: "blank",
     separator: "tab",

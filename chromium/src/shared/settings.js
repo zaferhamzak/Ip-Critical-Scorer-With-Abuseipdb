@@ -12,9 +12,19 @@ export const CACHE_TTL_MAX_MINUTES = 1440;
 export const MAX_AGE_MIN_DAYS = 1;
 export const MAX_AGE_MAX_DAYS = 365;
 
+export const HISTORY_MIN_DAYS = 1;
+export const HISTORY_MAX_DAYS = 90;
+export const MAX_QUICK_NOTES = 10;
+export const MAX_NOTE_LENGTH = 200;
+
+export const DEFAULT_QUICK_NOTES = Object.freeze(["False positive", "Bloklandı", "İzlemeye alındı", "İncelendi, aksiyon yok"]);
+
 export const DEFAULT_SETTINGS = Object.freeze({
   cacheTtlMinutes: 15,
   maxAgeInDays: 365,
+  historyEnabled: true,
+  historyDays: 7,
+  highlightKnown: false,
 });
 
 // Storage keys in chrome.storage.local.
@@ -23,6 +33,12 @@ export const STORAGE_KEYS = Object.freeze({
   cacheTtlMinutes: "cacheTtlMinutes",
   maxAgeInDays: "maxAgeInDays",
   exportTemplate: "exportTemplate",
+  quickNotes: "quickNotes",
+  historyEnabled: "historyEnabled",
+  historyDays: "historyDays",
+  highlightKnown: "highlightKnown",
+  history: "history",
+  quota: "quota",
 });
 
 // Prefix for cached lookup entries in chrome.storage.session.
@@ -50,6 +66,33 @@ export function normalizeMaxAge(value) {
   return days;
 }
 
+/** Returns history retention in days (1..90), or null when the value is not acceptable. */
+export function normalizeHistoryDays(value) {
+  const text = typeof value === "number" ? String(value) : String(value ?? "").trim();
+  if (!/^\d+$/.test(text)) return null;
+  const days = Number(text);
+  if (days < HISTORY_MIN_DAYS || days > HISTORY_MAX_DAYS) return null;
+  return days;
+}
+
+/** Free-text note: single line, trimmed, length-capped. */
+export function normalizeNote(value) {
+  if (typeof value !== "string") return "";
+  return value.replace(/\s+/g, " ").trim().slice(0, MAX_NOTE_LENGTH);
+}
+
+/** Quick-note presets: up to 10 unique non-empty lines; falls back to the defaults. */
+export function normalizeQuickNotes(value) {
+  if (!Array.isArray(value)) return [...DEFAULT_QUICK_NOTES];
+  const notes = [];
+  for (const item of value) {
+    const note = normalizeNote(item).slice(0, 60);
+    if (note && !notes.includes(note)) notes.push(note);
+    if (notes.length === MAX_QUICK_NOTES) break;
+  }
+  return notes;
+}
+
 /**
  * Returns the trimmed key, or null when it does not look like an API key.
  * AbuseIPDB keys are long alphanumeric tokens; we only reject obviously wrong input
@@ -68,6 +111,9 @@ export function mergeSettings(stored) {
   return {
     cacheTtlMinutes: ttl ?? DEFAULT_SETTINGS.cacheTtlMinutes,
     maxAgeInDays: maxAge ?? DEFAULT_SETTINGS.maxAgeInDays,
+    historyEnabled: typeof stored?.[STORAGE_KEYS.historyEnabled] === "boolean" ? stored[STORAGE_KEYS.historyEnabled] : DEFAULT_SETTINGS.historyEnabled,
+    historyDays: normalizeHistoryDays(stored?.[STORAGE_KEYS.historyDays]) ?? DEFAULT_SETTINGS.historyDays,
+    highlightKnown: stored?.[STORAGE_KEYS.highlightKnown] === true,
     hasApiKey: normalizeApiKey(stored?.[STORAGE_KEYS.apiKey]) !== null,
   };
 }

@@ -4,7 +4,7 @@
 
 import { ext } from "../shared/ext.js";
 import "../shared/export.js";
-import { STORAGE_KEYS, pagePatternsFromGranted } from "../shared/settings.js";
+import { STORAGE_KEYS, normalizeQuickNotes, pagePatternsFromGranted } from "../shared/settings.js";
 import { createLookupService } from "./lookup-service.js";
 
 const CONTENT_SCRIPT_ID = "ip-selector";
@@ -85,12 +85,17 @@ ext.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ status: "error", code: "internal" });
         });
       return true; // async response
-    case "getExportTemplate":
-      // The template lives in storage.local, which content scripts cannot read in Chromium.
+    case "getExportSettings":
+      // Template and quick notes live in storage.local, which content scripts cannot read in Chromium.
       ext.storage.local
-        .get(STORAGE_KEYS.exportTemplate)
-        .then((stored) => sendResponse(globalThis.ExportTools.normalizeTemplate(stored[STORAGE_KEYS.exportTemplate])))
-        .catch(() => sendResponse(globalThis.ExportTools.normalizeTemplate(null)));
+        .get([STORAGE_KEYS.exportTemplate, STORAGE_KEYS.quickNotes])
+        .then((stored) =>
+          sendResponse({
+            template: globalThis.ExportTools.normalizeTemplate(stored[STORAGE_KEYS.exportTemplate]),
+            quickNotes: normalizeQuickNotes(stored[STORAGE_KEYS.quickNotes]),
+          }),
+        )
+        .catch(() => sendResponse({ template: globalThis.ExportTools.normalizeTemplate(null), quickNotes: normalizeQuickNotes(null) }));
       return true;
     case "openOptions":
       ext.runtime.openOptionsPage();

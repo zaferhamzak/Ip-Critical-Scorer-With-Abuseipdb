@@ -208,6 +208,7 @@
     card.setAttribute("role", "dialog");
     card.setAttribute("aria-label", `AbuseIPDB sonucu: ${analysis.ip}`);
     card.tabIndex = -1;
+    for (const type of ["keydown", "keyup", "keypress"]) card.addEventListener(type, (event) => event.stopPropagation());
     card.dataset.anchor = JSON.stringify({ left: rect.left, top: rect.top, bottom: rect.bottom });
     ui.append(card);
     renderLoading(analysis.ip);
@@ -223,12 +224,55 @@
     }
   }
 
-  function setCardContent(ip, sev, children) {
+  function copyIcon() {
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 16 16");
+    svg.setAttribute("aria-hidden", "true");
+    for (const [x, y] of [[5, 5], [2, 2]]) {
+      const rect = document.createElementNS(NS, "rect");
+      rect.setAttribute("x", String(x));
+      rect.setAttribute("y", String(y));
+      rect.setAttribute("width", "9");
+      rect.setAttribute("height", "9");
+      rect.setAttribute("rx", "1.5");
+      rect.setAttribute("fill", "none");
+      rect.setAttribute("stroke", "currentColor");
+      rect.setAttribute("stroke-width", "1.5");
+      svg.append(rect);
+    }
+    return svg;
+  }
+
+  // Small icon next to the IP: copies only the IP address.
+  function ipCopyButton(ip) {
+    const button = el("button", "copy-ip");
+    button.type = "button";
+    button.title = "IP adresini kopyala";
+    button.setAttribute("aria-label", `${ip} adresini kopyala`);
+    button.append(copyIcon());
+    button.addEventListener("click", async () => {
+      const ok = await copyText(ip);
+      button.replaceChildren(document.createTextNode(ok ? "✓" : "!"));
+      button.title = ok ? "Kopyalandı" : "Kopyalanamadı";
+      setTimeout(() => {
+        if (!button.isConnected) return;
+        button.replaceChildren(copyIcon());
+        button.title = "IP adresini kopyala";
+      }, 1200);
+    });
+    return button;
+  }
+
+  function setCardContent(ip, sev, children, { copyIp = false } = {}) {
     if (!card) return;
     card.dataset.sev = sev;
     const header = el("div", "header");
     const title = el("div", "title");
-    title.append(el("span", "source", "AbuseIPDB"), el("span", "ip", ip));
+    const ipLine = el("span", "ip-line");
+    ipLine.append(el("span", "ip", ip));
+    if (copyIp) ipLine.append(ipCopyButton(ip));
+    title.append(el("span", "source", "AbuseIPDB"), ipLine);
     const close = el("button", "close", "×");
     close.type = "button";
     close.setAttribute("aria-label", "Kartı kapat");
@@ -316,14 +360,54 @@
     return ok;
   }
 
-  async function copyForExcel(button, response) {
-    let template = null;
+  // Template and quick notes come from the background (storage.local is not readable here).
+  async function getExportSettings() {
     try {
-      template = await sendMessage({ type: "getExportTemplate" });
+      const settings = await sendMessage({ type: "getExportSettings" });
+      if (settings && typeof settings === "object") return settings;
     } catch {
-      template = null; // default template
+      // fall through to defaults
     }
-    const ok = await copyText(globalThis.ExportTools.buildRow(template, response));
+    return { template: null, quickNotes: [] };
+  }
+
+  function currentNote() {
+    const input = card?.querySelector(".note-input");
+    return input ? input.value.replace(/\s+/g, " ").trim().slice(0, 200) : "";
+  }
+
+  function noteBox() {
+    const box = el("div", "note-box");
+    const chips = el("div", "note-chips");
+    const input = el("input", "note-input");
+    input.type = "text";
+    input.maxLength = 200;
+    input.placeholder = "Not ekle (Excel satırına girer)";
+    input.setAttribute("aria-label", "Excel satırına eklenecek not");
+    const syncChips = () => {
+      for (const chip of chips.children) chip.setAttribute("aria-pressed", String(chip.textContent === input.value.trim()));
+    };
+    input.addEventListener("input", syncChips);
+    box.append(chips, input);
+    getExportSettings().then(({ quickNotes }) => {
+      for (const text of quickNotes || []) {
+        const chip = el("button", "note-chip", text);
+        chip.type = "button";
+        chip.setAttribute("aria-pressed", "false");
+        chip.addEventListener("click", () => {
+          input.value = input.value.trim() === text ? "" : text;
+          syncChips();
+          input.focus();
+        });
+        chips.append(chip);
+      }
+    });
+    return box;
+  }
+
+  async function copyForExcel(button, response) {
+    const { template } = await getExportSettings();
+    const ok = await copyText(globalThis.ExportTools.buildRow(template, { ...response, note: currentNote() }));
     button.textContent = ok ? "Kopyalandı ✓" : "Kopyalanamadı";
     setTimeout(() => {
       if (button.isConnected) button.textContent = "Excel'e kopyala";
@@ -421,6 +505,7 @@
     const meta = response.fromCache
       ? `AbuseIPDB APIv2 · ${fetched} · önbellekten (${response.ttlMinutes} dk)`
       : `AbuseIPDB APIv2 · ${fetched}`;
+    parts.push(noteBox());
     parts.push(
       footer(meta, [
         actionLink("AbuseIPDB'de aç", response.detailUrl || detailUrl(analysis.ip)),
@@ -428,7 +513,7 @@
         refreshButton(analysis),
       ]),
     );
-    setCardContent(analysis.ip, sev, parts);
+    setCardContent(analysis.ip, sev, parts, { copyIp: true });
   }
 
   function renderError(analysis, response) {

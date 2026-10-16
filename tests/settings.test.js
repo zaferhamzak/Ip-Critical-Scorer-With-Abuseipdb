@@ -6,6 +6,9 @@ import {
   normalizeApiKey,
   normalizeCacheTtl,
   normalizeMaxAge,
+  normalizeNote,
+  normalizeQuickNotes,
+  DEFAULT_QUICK_NOTES,
   pagePatternsFromGranted,
   siteInputToMatchPattern,
 } from "../chromium/src/shared/settings.js";
@@ -37,9 +40,11 @@ test("normalizeApiKey trims and rejects malformed keys", () => {
 });
 
 test("mergeSettings falls back to defaults and never exposes the key", () => {
-  assert.deepEqual(mergeSettings({}), { cacheTtlMinutes: 15, maxAgeInDays: 365, hasApiKey: false });
-  const merged = mergeSettings({ cacheTtlMinutes: 30, maxAgeInDays: 90, apiKey: "b".repeat(80) });
-  assert.deepEqual(merged, { cacheTtlMinutes: 30, maxAgeInDays: 90, hasApiKey: true });
+  assert.deepEqual(mergeSettings({}), { cacheTtlMinutes: 15, maxAgeInDays: 365, historyEnabled: true, historyDays: 7, highlightKnown: false, hasApiKey: false });
+  const merged = mergeSettings({ cacheTtlMinutes: 30, maxAgeInDays: 90, apiKey: "b".repeat(80), historyEnabled: false, historyDays: 30, highlightKnown: true });
+  assert.deepEqual(merged, { cacheTtlMinutes: 30, maxAgeInDays: 90, historyEnabled: false, historyDays: 30, highlightKnown: true, hasApiKey: true });
+  assert.equal(mergeSettings({ historyDays: 500, highlightKnown: "yes" }).historyDays, 7);
+  assert.equal(mergeSettings({ highlightKnown: "yes" }).highlightKnown, false);
   assert.equal(mergeSettings({ maxAgeInDays: 1000 }).maxAgeInDays, 365);
   assert.equal(mergeSettings({ cacheTtlMinutes: 0 }).cacheTtlMinutes, 15);
 });
@@ -67,4 +72,14 @@ test("pagePatternsFromGranted excludes the API origin and dedupes", () => {
     ["https://a.example/*", "https://b.example/*"],
   );
   assert.deepEqual(pagePatternsFromGranted(undefined), []);
+});
+
+test("notes are single-line, trimmed and capped; quick notes are unique and limited", () => {
+  assert.equal(normalizeNote("  Bloklandı\n FW-123\t "), "Bloklandı FW-123");
+  assert.equal(normalizeNote("x".repeat(300)).length, 200);
+  assert.equal(normalizeNote(42), "");
+  assert.deepEqual(normalizeQuickNotes(undefined), [...DEFAULT_QUICK_NOTES]);
+  assert.deepEqual(normalizeQuickNotes(["A", " a ", "A", "", "B"]), ["A", "a", "B"]);
+  assert.equal(normalizeQuickNotes(Array.from({ length: 20 }, (_, i) => `n${i}`)).length, 10);
+  assert.deepEqual(normalizeQuickNotes([]), []);
 });

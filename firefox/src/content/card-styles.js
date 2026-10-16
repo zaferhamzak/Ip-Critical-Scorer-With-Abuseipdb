@@ -120,6 +120,26 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--focus); outline
   overflow-wrap: anywhere;
 }
 
+.ip-line { display: flex; align-items: center; gap: 6px; margin-top: 2px; min-width: 0; }
+.ip-line .ip { margin-top: 0; min-width: 0; }
+.copy-ip {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.copy-ip svg { width: 14px; height: 14px; }
+.copy-ip:hover { background: var(--surface); color: var(--fg); }
+
 .close {
   flex: none;
   display: grid;
@@ -211,6 +231,32 @@ dl { margin: 10px 0 0; }
 dt { color: var(--muted); }
 dd { margin: 0; overflow-wrap: anywhere; }
 .missing { color: var(--muted); font-style: italic; }
+
+.note-box { display: grid; gap: 6px; margin-top: 10px; }
+.note-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.note-chips:empty { display: none; }
+.note-chip {
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.note-chip:hover { background: var(--surface); }
+.note-chip[aria-pressed="true"] { background: var(--btn-bg); border-color: var(--btn-bg); color: var(--btn-fg); }
+.note-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+}
+.note-input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 
 .footer {
   display: flex;

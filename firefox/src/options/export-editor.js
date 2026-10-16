@@ -1,7 +1,7 @@
 // Options page editor for the Excel export template (globalThis.ExportTools from shared/export.js).
 
 import { ext } from "../shared/ext.js";
-import { STORAGE_KEYS } from "../shared/settings.js";
+import { STORAGE_KEYS, normalizeQuickNotes } from "../shared/settings.js";
 
 const tools = globalThis.ExportTools;
 const $ = (id) => document.getElementById(id);
@@ -17,6 +17,7 @@ const SAMPLE = {
     usageType: "Data Center/Web Hosting/Transit", domain: "example-hosting.test", isTor: false, isWhitelisted: false,
     maxAgeInDays: 365,
   },
+  note: "False positive",
 };
 
 let template = tools.normalizeTemplate(null);
@@ -122,9 +123,15 @@ function renderAll() {
   renderPreview();
 }
 
+function quickNotesFromInput() {
+  return normalizeQuickNotes($("quick-notes").value.split("\n"));
+}
+
 async function save() {
   template = tools.normalizeTemplate(template);
-  await ext.storage.local.set({ [STORAGE_KEYS.exportTemplate]: template });
+  const quickNotes = quickNotesFromInput();
+  await ext.storage.local.set({ [STORAGE_KEYS.exportTemplate]: template, [STORAGE_KEYS.quickNotes]: quickNotes });
+  $("quick-notes").value = quickNotes.join("\n");
   dirty = false;
   renderAll();
   setStatus("Şablon kaydedildi.");
@@ -162,6 +169,7 @@ export async function initExportEditor() {
     template.separator = e.target.value;
     markDirty();
   });
+  $("quick-notes").addEventListener("input", () => markDirty());
   $("export-save").addEventListener("click", () => save().catch(() => setStatus("Kaydedilemedi.")));
   $("export-copy-header").addEventListener("click", () => copyHeader());
   $("export-reset").addEventListener("click", () => {
@@ -174,7 +182,8 @@ export async function initExportEditor() {
     if (dirty) e.preventDefault();
   });
 
-  const stored = await ext.storage.local.get(STORAGE_KEYS.exportTemplate);
+  const stored = await ext.storage.local.get([STORAGE_KEYS.exportTemplate, STORAGE_KEYS.quickNotes]);
   template = tools.normalizeTemplate(stored[STORAGE_KEYS.exportTemplate]);
+  $("quick-notes").value = normalizeQuickNotes(stored[STORAGE_KEYS.quickNotes]).join("\n");
   renderAll();
 }
