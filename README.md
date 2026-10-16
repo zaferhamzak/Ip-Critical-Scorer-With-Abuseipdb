@@ -6,6 +6,8 @@ Sayfada seçtiğiniz IP adresinin AbuseIPDB itibar skorunu aynı sayfada küçü
 
 ![Sonuç kartı](chromium/web-store/4-gorseller/screenshot-2-sonuc-karti.png)
 
+Her özelliğin nasıl çalıştığının ayrıntılı anlatımı: [docs/NASIL-CALISIR.md](docs/NASIL-CALISIR.md)
+
 ## Ne yapar
 
 - Bir IP adresini mouse ile seçtiğinizde yanında **IP'yi sorgula** butonu çıkar. Seçim tek başına hiçbir istek göndermez; sorgu yalnızca butona bastığınızda yapılır.
