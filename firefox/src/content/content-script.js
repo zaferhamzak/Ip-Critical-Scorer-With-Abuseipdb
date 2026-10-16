@@ -224,6 +224,44 @@
     }
   }
 
+  // Card shortcuts: C copy, O open, R refresh, N note, 1-9 quick note; Enter in the note copies.
+  function onCardKey(event) {
+    if (!card || event.ctrlKey || event.metaKey || event.altKey) return;
+    const target = event.composedPath()[0];
+    const click = (action) => {
+      const node = card.querySelector(`[data-action="${action}"]`);
+      if (node && !node.disabled) node.click();
+      return Boolean(node);
+    };
+    if (target instanceof HTMLInputElement) {
+      if (event.key === "Enter" && target.classList.contains("note-input")) {
+        event.preventDefault();
+        click("copy");
+      }
+      return;
+    }
+    const key = event.key.toLocaleLowerCase("tr");
+    let handled = false;
+    if (key === "c") handled = click("copy");
+    else if (key === "o") handled = click("open");
+    else if (key === "r") handled = click("refresh");
+    else if (key === "n") {
+      const input = card.querySelector(".note-input");
+      if (input) {
+        input.focus();
+        handled = true;
+      }
+    } else if (/^[1-9]$/.test(event.key)) {
+      const chip = card.querySelectorAll(".note-chip")[Number(event.key) - 1];
+      if (chip) {
+        chip.click();
+        card.focus({ preventScroll: true }); // keep shortcuts active after picking a note
+        handled = true;
+      }
+    }
+    if (handled) event.preventDefault();
+  }
+
   function createCard(label, rect) {
     ensureRoot();
     closeCard();
@@ -231,6 +269,7 @@
     card.setAttribute("role", "dialog");
     card.setAttribute("aria-label", label);
     card.tabIndex = -1;
+    card.addEventListener("keydown", onCardKey);
     for (const type of ["keydown", "keyup", "keypress"]) card.addEventListener(type, (event) => event.stopPropagation());
     card.dataset.anchor = JSON.stringify({ left: rect.left, top: rect.top, bottom: rect.bottom });
     ui.append(card);
@@ -333,6 +372,11 @@
     return a;
   }
 
+  function withAction(node, action) {
+    node.dataset.action = action;
+    return node;
+  }
+
   function actionButton(label, onClick) {
     const b = el("button", "action", label);
     b.type = "button";
@@ -342,6 +386,7 @@
 
   function refreshButton(analysis) {
     const button = actionButton("↻", () => runLookup(analysis, true));
+    button.dataset.action = "refresh";
     button.classList.add("icon-action");
     button.title = "Yenile";
     button.setAttribute("aria-label", "Sonucu yenile");
@@ -350,6 +395,7 @@
 
   function copyButton(response) {
     const button = actionButton("Excel'e kopyala", () => copyForExcel(button, response));
+    button.dataset.action = "copy";
     button.title = "Ayarlardaki Excel şablonuna göre tek satır kopyalar";
     return button;
   }
@@ -419,6 +465,7 @@
     getExportSettings().then(({ quickNotes }) => {
       for (const text of quickNotes || []) {
         const chip = el("button", "note-chip", text);
+        if (chips.childElementCount < 9) chip.title = `Kısayol: ${chips.childElementCount + 1}`;
         chip.type = "button";
         chip.setAttribute("aria-pressed", "false");
         chip.addEventListener("click", () => {
@@ -546,6 +593,7 @@
     );
     parts.push(dl);
 
+    parts.push(el("p", "shortcuts", "Kısayollar: C kopyala · O aç · R yenile · 1–9 hazır not · N not yaz"));
     const fetched = dateFormat.format(new Date(response.fetchedAt));
     const meta = response.fromCache
       ? `AbuseIPDB APIv2 · ${fetched} · önbellekten (${response.ttlMinutes} dk)`
@@ -555,7 +603,7 @@
     if (quota) parts.push(el("p", quota.low ? "quota low" : "quota", quota.text));
     parts.push(
       footer(meta, [
-        actionLink("AbuseIPDB'de aç", response.detailUrl || detailUrl(analysis.ip)),
+        withAction(actionLink("AbuseIPDB'de aç", response.detailUrl || detailUrl(analysis.ip)), "open"),
         copyButton(response),
         refreshButton(analysis),
       ]),
@@ -696,6 +744,7 @@
       const actions = [];
       if (okCount > 0) {
         const copy = actionButton(`Hepsini Excel'e kopyala (${okCount})`, () => copyBulk(copy, ctx));
+        copy.dataset.action = "copy";
         copy.classList.add("primary");
         actions.push(copy);
       }
