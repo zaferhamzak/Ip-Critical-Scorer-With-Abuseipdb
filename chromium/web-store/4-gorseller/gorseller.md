@@ -15,7 +15,7 @@ Ekran görüntüleri bu sırayla yüklenmeli; mağazada ilk görsel öne çıkar
 
 ## Tanıtım videosu (YouTube)
 
-Dosya: `tanitim-videosu.mp4` (35 sn, 1280×720, sessiz). Eklentinin gerçek koduyla, örnek veri içeren bir SIEM sayfasında kaydedildi. Dosya git'e eklenmez.
+Dosya: `tanitim-videosu-1080p.mp4` (50 sn, 1920×1080, H.264 + AAC, Türkçe seslendirmeli). Eklentinin gerçek koduyla, örnek veri içeren bir SIEM sayfasında kaydedildi. Seslendirme macOS'un Türkçe sesi (Yelda) ile yerelde üretildi. Dosya git'e eklenmez.
 
 Akış:
 1. Açılış: logo ve tek cümlelik tanıtım
