@@ -1,3 +1,4 @@
+import { ext } from "../shared/ext.js";
 import { siteInputToMatchPattern } from "../shared/settings.js";
 import { bindApiKeyForm } from "../ui/api-key-form.js";
 
@@ -13,7 +14,7 @@ let sitePattern = null;
 
 // activeTab exposes the current tab's URL only while the popup is open.
 async function renderSite() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const [tab] = await ext.tabs.query({ active: true, currentWindow: true });
   let origin = null;
   try {
     const url = new URL(tab?.url ?? "");
@@ -28,7 +29,7 @@ async function renderSite() {
     button.hidden = true;
     return;
   }
-  const granted = await chrome.permissions.contains({ origins: [sitePattern] });
+  const granted = await ext.permissions.contains({ origins: [sitePattern] });
   $("site-status").textContent = granted
     ? `${origin} için etkin. IP seçip “IP’yi sorgula” butonunu kullanın.`
     : `${origin} için etkin değil.`;
@@ -38,7 +39,7 @@ async function renderSite() {
 $("site-enable").addEventListener("click", () => {
   if (!sitePattern) return;
   // permissions.request must be called directly from the click handler.
-  chrome.permissions
+  ext.permissions
     .request({ origins: [sitePattern] })
     .then((granted) => {
       showMessage(granted ? "Etkinleştirildi. Sayfayı yenileyin." : "İzin verilmedi.", granted ? "ok" : "error");
@@ -51,9 +52,9 @@ $("site-enable").addEventListener("click", () => {
 });
 
 // Updates are delivered by the Chrome Web Store; just show what is running.
-$("version-status").textContent = `v${chrome.runtime.getManifest().version} · Chrome Web Store tarafından otomatik güncellenir`;
+$("version-status").textContent = `v${ext.runtime.getManifest().version} · Chrome Web Store tarafından otomatik güncellenir`;
 
-$("open-options").addEventListener("click", () => chrome.runtime.openOptionsPage());
+$("open-options").addEventListener("click", () => ext.runtime.openOptionsPage());
 
 bindApiKeyForm({
   form: $("api-form"),

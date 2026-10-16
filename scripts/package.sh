@@ -1,23 +1,26 @@
 #!/bin/sh
-# Builds dist/ip-critical-scorer-<version>.zip for the Chrome Web Store.
-# manifest.json sits at the root of the archive, as the store requires.
+# Builds store packages for both browsers. manifest.json sits at the archive root.
+#   dist/ip-critical-scorer-chromium-<version>.zip  -> Chrome Web Store / Edge Add-ons
+#   dist/ip-critical-scorer-firefox-<version>.zip   -> addons.mozilla.org
 set -eu
 
 cd "$(dirname "$0")/.."
 
-version=$(node -p 'require("./manifest.json").version')
-stage="dist/stage"
-archive="dist/ip-critical-scorer-$version.zip"
-
+sh scripts/sync-src.sh >/dev/null
 npm test --silent
 
-rm -rf "$stage" "$archive"
-mkdir -p "$stage/icons"
-cp manifest.json "$stage/"
-cp -R src "$stage/"
-cp icons/*.png "$stage/icons/"
+version=$(node -p 'require("./chromium/manifest.json").version')
+mkdir -p dist
 
-(cd "$stage" && zip -qrX "../$(basename "$archive")" .)
-rm -rf "$stage"
-
-echo "Created $archive"
+for browser in chromium firefox; do
+  stage="dist/stage-$browser"
+  archive="dist/ip-critical-scorer-$browser-$version.zip"
+  rm -rf "$stage" "$archive"
+  mkdir -p "$stage/icons"
+  cp "$browser/manifest.json" "$stage/"
+  cp -R "$browser/src" "$stage/"
+  cp "$browser"/icons/*.png "$stage/icons/"
+  (cd "$stage" && zip -qrX "../$(basename "$archive")" .)
+  rm -rf "$stage"
+  echo "Created $archive"
+done

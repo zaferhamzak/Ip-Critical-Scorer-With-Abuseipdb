@@ -8,7 +8,7 @@ import {
   normalizeMaxAge,
   pagePatternsFromGranted,
   siteInputToMatchPattern,
-} from "../src/shared/settings.js";
+} from "../chromium/src/shared/settings.js";
 
 test("normalizeCacheTtl accepts integers within 1..1440", () => {
   assert.equal(normalizeCacheTtl("15"), 15);

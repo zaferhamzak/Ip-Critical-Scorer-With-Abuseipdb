@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import "../src/shared/ip.js";
+import "../chromium/src/shared/ip.js";
 
 const { analyzeSelection, parseIp, cleanSelection, detailUrl } = globalThis.IpTools;
 

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   LookupError, buildCheckRequest, errorFromResponse, normalizeCheckResponse,
-} from "../src/shared/abuseipdb.js";
+} from "../chromium/src/shared/abuseipdb.js";
 
 const MAX_AGE_IN_DAYS = 365;
 

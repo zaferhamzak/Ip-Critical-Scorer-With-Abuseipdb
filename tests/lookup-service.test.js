@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { createLookupService, RATE_LIMIT_STATE_KEY, MIN_REFRESH_INTERVAL_MS } from "../src/background/lookup-service.js";
+import { createLookupService, RATE_LIMIT_STATE_KEY, MIN_REFRESH_INTERVAL_MS } from "../chromium/src/background/lookup-service.js";
 
 const fixture = JSON.parse(readFileSync(new URL("./fixtures/check-response.json", import.meta.url)));
 const PUBLIC_IP = "8.8.8.8";

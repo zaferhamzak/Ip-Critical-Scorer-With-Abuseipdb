@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/",
+    "sync": "sh scripts/sync-src.sh",
     "package": "sh scripts/package.sh"
   }
 }

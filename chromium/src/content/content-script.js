@@ -6,6 +6,7 @@
   "use strict";
 
   if (globalThis.__abuseIpdbLookupLoaded) return;
+  const ext = globalThis.browser ?? globalThis.chrome;
   globalThis.__abuseIpdbLookupLoaded = true;
 
   const { analyzeSelection, detailUrl, MAX_INPUT_LENGTH } = globalThis.IpTools;
@@ -81,7 +82,7 @@
     host.style.cssText = "all: initial; position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483647;";
     root = host.attachShadow({ mode: "closed" });
     try {
-      const sheet = new CSSStyleSheet();
+      const sheet = new window.CSSStyleSheet();
       sheet.replaceSync(STYLES);
       root.adoptedStyleSheets = [sheet];
     } catch {
@@ -422,8 +423,8 @@
   }
 
   async function sendMessage(message) {
-    if (!chrome.runtime?.id) throw new Error("extension_unavailable");
-    return chrome.runtime.sendMessage(message);
+    if (!ext.runtime?.id) throw new Error("extension_unavailable");
+    return ext.runtime.sendMessage(message);
   }
 
   async function runLookup(analysis, refresh) {
@@ -478,8 +479,8 @@
     if (card) place(card, anchorRect());
   });
 
-  chrome.runtime.onMessage.addListener((message, sender) => {
-    if (sender.id !== chrome.runtime.id || message?.type !== "lookupSelection") return;
+  ext.runtime.onMessage.addListener((message, sender) => {
+    if (sender.id !== ext.runtime.id || message?.type !== "lookupSelection") return;
     const found = readSelection();
     if (!found) return;
     hideButton();

@@ -19,8 +19,8 @@ export const REQUEST_TIMEOUT_MS = 10_000;
 /**
  * @param {object} deps
  * @param {Function} deps.fetchFn  fetch-compatible function
- * @param {object} deps.localArea  chrome.storage.local-like ({get,set,remove})
- * @param {object} deps.sessionArea chrome.storage.session-like
+ * @param {object} deps.localArea  storage.local-like ({get,set,remove})
+ * @param {object} deps.sessionArea storage.session-like
  * @param {Function} [deps.now]
  * @param {number} [deps.timeoutMs]
  */

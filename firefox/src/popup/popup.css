@@ -1,0 +1,6 @@
+body { width: 360px; }
+main { padding: 12px; }
+h1 { font-size: 16px; margin-bottom: 12px; }
+section { padding: 12px; margin-bottom: 12px; }
+.hint { margin: 8px 0 0; font-size: 12px; }
+#site-status { margin: 0; overflow-wrap: anywhere; }

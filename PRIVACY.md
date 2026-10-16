@@ -4,7 +4,7 @@ Son güncelleme / Last updated: 2026-10-16
 
 ## Türkçe
 
-IP Critical Scorer, sayfada seçtiğiniz IP adresinin AbuseIPDB itibar bilgisini gösteren bir Chrome eklentisidir. Eklenti AbuseIPDB'nin resmi ürünü değildir ve AbuseIPDB ile bağlantısı yoktur.
+IP Critical Scorer, sayfada seçtiğiniz IP adresinin AbuseIPDB itibar bilgisini gösteren bir tarayıcı eklentisidir (Chrome, Edge, Brave ve Firefox). Eklenti AbuseIPDB'nin resmi ürünü değildir ve AbuseIPDB ile bağlantısı yoktur.
 
 **Toplanan ve gönderilen veriler**
 - Yalnızca siz **IP'yi sorgula** butonuna bastığınızda, seçtiğiniz ve geçerli olduğu doğrulanan tek bir genel (public) IP adresi AbuseIPDB'ye (`api.abuseipdb.com`) gönderilir.
@@ -16,9 +16,9 @@ IP Critical Scorer, sayfada seçtiğiniz IP adresinin AbuseIPDB itibar bilgisini
 - Eklenti geliştiricisine hiçbir veri gönderilmez. Telemetri, analiz ya da reklam yoktur.
 
 **Saklanan veriler**
-- API anahtarınız, önbellek süresi, rapor dönemi ve site izinleri yalnızca tarayıcınızda (`chrome.storage.local`) saklanır.
-- Sorgu sonuçları, tarayıcı kapanınca silinen oturum önbelleğinde (`chrome.storage.session`) varsayılan olarak 15 dakika tutulur.
-- Eklentiyi kaldırdığınızda bu veriler Chrome tarafından silinir.
+- API anahtarınız, önbellek süresi, rapor dönemi ve site izinleri yalnızca tarayıcınızda (eklenti yerel depolaması, `storage.local`) saklanır.
+- Sorgu sonuçları, tarayıcı kapanınca silinen oturum önbelleğinde (`storage.session`) varsayılan olarak 15 dakika tutulur.
+- Eklentiyi kaldırdığınızda bu veriler tarayıcı tarafından silinir.
 
 **Üçüncü taraf**
 - AbuseIPDB'ye gönderilen veriler AbuseIPDB'nin kendi gizlilik politikasına tabidir: https://www.abuseipdb.com/privacy-policy
@@ -28,7 +28,7 @@ IP Critical Scorer, sayfada seçtiğiniz IP adresinin AbuseIPDB itibar bilgisini
 
 ## English
 
-IP Critical Scorer is a Chrome extension that shows the AbuseIPDB reputation of an IP address you select on a page. It is not an official AbuseIPDB product and is not affiliated with AbuseIPDB.
+IP Critical Scorer is a browser extension (Chrome, Edge, Brave and Firefox) that shows the AbuseIPDB reputation of an IP address you select on a page. It is not an official AbuseIPDB product and is not affiliated with AbuseIPDB.
 
 **Data sent**
 - Only when you press **IP'yi sorgula** (look up IP), the single validated public IP address you selected is sent to AbuseIPDB (`api.abuseipdb.com`), together with the AbuseIPDB API key you entered, which AbuseIPDB uses to authorize the request.
@@ -39,8 +39,8 @@ IP Critical Scorer is a Chrome extension that shows the AbuseIPDB reputation of 
 - No data is sent to the developer. There is no telemetry, analytics or advertising.
 
 **Data stored**
-- Your API key and settings are stored only in your browser (`chrome.storage.local`).
-- Lookup results are cached in session storage (`chrome.storage.session`) for 15 minutes by default and cleared when the browser closes.
+- Your API key and settings are stored only in your browser (extension `storage.local`).
+- Lookup results are cached in session storage (`storage.session`) for 15 minutes by default and cleared when the browser closes.
 - Uninstalling the extension removes this data.
 
 **Third party**

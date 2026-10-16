@@ -1,10 +1,10 @@
 # IP Critical Scorer
 
-Sayfada seçtiğiniz IP adresinin AbuseIPDB itibar skorunu aynı sayfada küçük bir kartta gösteren Chrome eklentisi. SOC analistlerinin log, SIEM ve ticket ekranlarında sekme değiştirmeden IP itibarına bakması için yapıldı.
+Sayfada seçtiğiniz IP adresinin AbuseIPDB itibar skorunu aynı sayfada küçük bir kartta gösteren tarayıcı eklentisi. Chromium tabanlı tarayıcılar (Chrome, Edge, Brave) ve Firefox için ayrı paketleri vardır. SOC analistlerinin log, SIEM ve ticket ekranlarında sekme değiştirmeden IP itibarına bakması için yapıldı.
 
 > Bu eklenti AbuseIPDB'nin resmi ürünü değildir ve AbuseIPDB ile bağlantısı yoktur. Veriler AbuseIPDB'nin herkese açık APIv2'sinden, sizin API anahtarınızla alınır.
 
-![Sonuç kartı](store-assets/screenshot-2-card.png)
+![Sonuç kartı](chromium/store-assets/screenshot-2-card.png)
 
 ## Ne yapar
 
@@ -16,11 +16,17 @@ Sayfada seçtiğiniz IP adresinin AbuseIPDB itibar skorunu aynı sayfada küçü
 
 ## Kurulum
 
-Eklenti Chrome Web Store üzerinden dağıtılır ve Chrome tarafından otomatik güncellenir.
+Eklenti tarayıcıların kendi mağazalarından dağıtılır; güncellemeleri tarayıcı kendisi yapar.
 
+**Chrome / Edge / Brave**
 1. Chrome Web Store sayfasını açın (bağlantı mağaza onayından sonra eklenecek).
 2. **Chrome'a ekle**'ye basın.
 3. Araç çubuğundaki yapboz simgesinden eklentiyi sabitleyin, böylece **IP** simgesi her zaman görünür.
+
+**Firefox (140 ve üstü)**
+1. addons.mozilla.org sayfasını açın (bağlantı onaydan sonra eklenecek).
+2. **Firefox'a ekle**'ye basın. Firefox, eklentinin seçtiğiniz IP'yi ve API anahtarınızı AbuseIPDB'ye gönderdiğini kurulumda gösterir.
+3. Araç çubuğundaki yapboz simgesinden eklentiyi sabitleyin.
 
 ### Kurumsal ortam (BT ekibi için)
 
@@ -28,6 +34,7 @@ Eklenti Chrome Web Store üzerinden dağıtılır ve Chrome tarafından otomatik
 
 - **Yalnızca izin vermek:** `ExtensionInstallAllowlist` listesine `<eklenti-id>` eklenir.
 - **Herkese zorunlu kurmak:** `ExtensionInstallForcelist` listesine `<eklenti-id>;https://clients2.google.com/service/update2/crx` eklenir.
+- **Firefox:** Kurumsal politikada (`policies.json` ya da GPO) `ExtensionSettings` altında `ip-critical-scorer@zaferhamzak.github.io` kimliği için `installation_mode: "force_installed"` ve AMO'daki `install_url` tanımlanır.
 
 Politikalar Intune, Group Policy, Jamf ya da Google Admin konsolundan dağıtılabilir. Kurulum ve güncelleme Chrome'un kendisi tarafından yapılır; bilgisayarda ek betik ya da arka plan görevi çalışmaz.
 
@@ -95,7 +102,8 @@ Ayrıntılı metin: [PRIVACY.md](PRIVACY.md)
 - Yalnızca seçilen ve doğrulanan IP adresi ile API anahtarınız `api.abuseipdb.com` adresine gönderilir.
 - Sayfanın adresi, içeriği, log metni ya da çerezler hiçbir yere gönderilmez.
 - Telemetri ya da analiz yoktur; geliştiriciye hiçbir veri gitmez.
-- API anahtarı Chrome'un yerel depolamasında tutulur. Eklentinin sayfalara eklenen kendi bileşeni bile anahtarı okuyamaz; anahtarı yalnızca arka plan servisi kullanır.
+- API anahtarı tarayıcının yerel eklenti depolamasında tutulur; web sayfaları erişemez.
+- Chromium'da eklentinin sayfalara eklenen kendi bileşeni bile anahtarı okuyamaz; anahtarı yalnızca arka plan servisi kullanır. Firefox bu kısıtlamayı (`storage.setAccessLevel`) desteklemediği için Firefox'ta bu ek koruma yoktur.
 
 ## İzinler ve gerekçeleri
 
@@ -119,28 +127,36 @@ Gereksinim: Node.js 20 veya üstü. Ek bağımlılık yoktur.
 
 ```sh
 npm test          # birim testleri
-npm run package   # testleri çalıştırır, dist/ altına Web Store ZIP'i üretir
+npm run sync      # chromium/src -> firefox/src
+npm run package   # senkronlar, testleri çalıştırır, dist/ altına iki mağaza ZIP'i üretir
 ```
-
-Geliştirirken: `chrome://extensions` → **Geliştirici modu** → **Paketlenmemiş öğe yükle** → depo klasörü. Değişiklikten sonra eklentiyi ↻ ile yenileyin.
 
 Klasör yapısı:
 
 ```
-manifest.json
-src/background/   service worker, sorgu servisi
-src/content/      seçim butonu ve sonuç kartı
-src/shared/       IP doğrulama, AbuseIPDB API adaptörü, ayarlar
-src/popup/        araç çubuğu penceresi
-src/options/      ayarlar sayfası
-icons/            PNG ikonlar (source/ altında SVG kaynakları)
-store-assets/     mağaza ekran görüntüleri ve başvuru metinleri
-tests/            birim testleri ve sentetik test verisi
+chromium/                 Chrome, Edge, Brave paketi
+  manifest.json           service worker arka planı
+  src/                    kaynak kodun asıl yeri
+  icons/
+  store-assets/           Chrome Web Store metinleri ve ekran görüntüleri
+firefox/                  Firefox paketi
+  manifest.json           event page arka planı, gecko kimliği, veri beyanı
+  src/, icons/            chromium/'dan kopyalanır, elle düzenlenmez
+  store-assets/           addons.mozilla.org metinleri
+design/icons/             ikonların SVG kaynakları
+scripts/                  sync-src.sh, package.sh
+tests/                    birim testleri (chromium/src üzerinde) ve iki paketin uyum testleri
 ```
+
+Kod yalnızca `chromium/src` altında düzenlenir. `npm run sync` bunu `firefox/` altına kopyalar; testler iki klasör farklılaşırsa hata verir. Kod iki tarayıcıda da `shared/ext.js` üzerinden çalışır (Firefox'ta `browser`, Chromium'da `chrome`).
+
+Geliştirirken yükleme:
+- **Chrome:** `chrome://extensions` → **Geliştirici modu** → **Paketlenmemiş öğe yükle** → `chromium/` klasörü.
+- **Firefox:** `about:debugging#/runtime/this-firefox` → **Geçici eklenti yükle** → `firefox/manifest.json`. Geçici eklenti Firefox kapanınca kaldırılır.
 
 ### Yeni sürüm yayınlama
 
-1. `manifest.json` içindeki `version` değerini artırın.
+1. `chromium/manifest.json` ve `firefox/manifest.json` içindeki `version` değerini aynı şekilde artırın.
 2. `npm run package` çalıştırın.
-3. Chrome Web Store Developer Dashboard'da eklentiyi açıp **Package** sekmesinden yeni ZIP'i yükleyin ve incelemeye gönderin.
-4. Onaydan sonra Chrome, kullanıcılardaki eklentiyi kendiliğinden günceller.
+3. Chrome Web Store Developer Dashboard'a `dist/ip-critical-scorer-chromium-<sürüm>.zip`, addons.mozilla.org Developer Hub'a `dist/ip-critical-scorer-firefox-<sürüm>.zip` yükleyin.
+4. Onaydan sonra tarayıcılar kullanıcılardaki eklentiyi kendiliğinden günceller.

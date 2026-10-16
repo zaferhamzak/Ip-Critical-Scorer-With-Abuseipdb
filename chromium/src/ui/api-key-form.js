@@ -1,6 +1,7 @@
 // Shared API key form used by the popup and the options page.
 // The stored key is never read back into the page; only its presence is shown.
 
+import { ext } from "../shared/ext.js";
 import { STORAGE_KEYS, normalizeApiKey } from "../shared/settings.js";
 
 /**
@@ -14,7 +15,7 @@ import { STORAGE_KEYS, normalizeApiKey } from "../shared/settings.js";
  */
 export function bindApiKeyForm({ form, input, reveal, remove, status, notify }) {
   async function render() {
-    const stored = await chrome.storage.local.get(STORAGE_KEYS.apiKey);
+    const stored = await ext.storage.local.get(STORAGE_KEYS.apiKey);
     const hasKey = normalizeApiKey(stored?.[STORAGE_KEYS.apiKey]) !== null;
     status.textContent = hasKey ? "Anahtar kayıtlı" : "Anahtar yok – kart yalnızca detay bağlantısı gösterir";
     status.dataset.state = hasKey ? "ok" : "missing";
@@ -30,7 +31,7 @@ export function bindApiKeyForm({ form, input, reveal, remove, status, notify }) 
       input.focus();
       return;
     }
-    await chrome.storage.local.set({ [STORAGE_KEYS.apiKey]: key });
+    await ext.storage.local.set({ [STORAGE_KEYS.apiKey]: key });
     input.value = "";
     if (reveal) {
       reveal.checked = false;
@@ -41,7 +42,7 @@ export function bindApiKeyForm({ form, input, reveal, remove, status, notify }) 
   }
 
   async function removeKey() {
-    await chrome.storage.local.remove(STORAGE_KEYS.apiKey);
+    await ext.storage.local.remove(STORAGE_KEYS.apiKey);
     notify("Anahtar silindi.");
     await render();
   }
@@ -57,7 +58,7 @@ export function bindApiKeyForm({ form, input, reveal, remove, status, notify }) 
   reveal?.addEventListener("change", () => {
     input.type = reveal.checked ? "text" : "password";
   });
-  chrome.storage.onChanged.addListener((changes, area) => {
+  ext.storage.onChanged.addListener((changes, area) => {
     if (area === "local" && STORAGE_KEYS.apiKey in changes) render().catch(() => {});
   });
 
