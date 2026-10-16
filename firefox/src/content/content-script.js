@@ -9,7 +9,10 @@
   const ext = globalThis.browser ?? globalThis.chrome;
   globalThis.__abuseIpdbLookupLoaded = true;
 
-  const { analyzeSelection, detailUrl, MAX_INPUT_LENGTH } = globalThis.IpTools;
+  const { analyzeSelection, extractIps, detailUrl, MAX_INPUT_LENGTH } = globalThis.IpTools;
+  const BULK_AUTOSTART = 10; // above this many public IPs, ask before spending quota
+  const BULK_CONCURRENCY = 2;
+  const MAX_SELECTION_TEXT = 20000;
   const STYLES = globalThis.AbuseIpdbCardStyles;
   const MARGIN = 8;
   const GAP = 6;
@@ -115,6 +118,17 @@
 
   // ---------- selection ----------
 
+  // Single IP (exact or inside text such as "src=8.8.8.8") or several IPs for a bulk lookup.
+  function classifyText(text) {
+    if (typeof text !== "string" || text.length === 0 || text.length > MAX_SELECTION_TEXT) return null;
+    const exact = text.length <= MAX_INPUT_LENGTH ? analyzeSelection(text) : null;
+    if (exact) return { analysis: exact };
+    const { ips, truncated } = extractIps(text);
+    if (ips.length === 1) return { analysis: ips[0] };
+    if (ips.length > 1) return { bulk: ips, truncated };
+    return null;
+  }
+
   function readSelection() {
     const active = document.activeElement;
     if (
@@ -123,17 +137,14 @@
       typeof active.selectionStart === "number" &&
       active.selectionStart !== active.selectionEnd
     ) {
-      const text = active.value.slice(active.selectionStart, active.selectionEnd);
-      const analysis = text.length <= MAX_INPUT_LENGTH ? analyzeSelection(text) : null;
-      return analysis ? { analysis, rect: active.getBoundingClientRect() } : null;
+      const found = classifyText(active.value.slice(active.selectionStart, active.selectionEnd));
+      return found ? { ...found, rect: active.getBoundingClientRect() } : null;
     }
 
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return null;
-    const text = selection.toString();
-    if (text.length === 0 || text.length > MAX_INPUT_LENGTH) return null;
-    const analysis = analyzeSelection(text);
-    if (!analysis) return null;
+    const found = classifyText(selection.toString());
+    if (!found) return null;
     const range = selection.getRangeAt(0);
     let rect = range.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) {
@@ -141,7 +152,12 @@
       if (rects.length === 0) return null;
       rect = rects[rects.length - 1];
     }
-    return { analysis, rect };
+    return { ...found, rect };
+  }
+
+  function openFound(found) {
+    if (found.bulk) openBulkCard(found);
+    else openCard(found.analysis, found.rect);
   }
 
   function showButton(found) {
@@ -150,19 +166,26 @@
     if (!button) {
       button = el("button", "lookup-button");
       button.type = "button";
-      button.append(searchIcon(), el("span", null, "IP’yi sorgula"));
+      button.append(searchIcon(), el("span", "label", "IP’yi sorgula"));
       // Keep the page selection intact when the button is pressed.
       button.addEventListener("mousedown", (event) => event.preventDefault());
       button.addEventListener("click", () => {
         if (!pending) return;
-        const { analysis, rect } = pending;
+        const found = pending;
         hideButton();
-        openCard(analysis, rect);
+        openFound(found);
       });
       ui.append(button);
     }
-    button.setAttribute("aria-label", `${found.analysis.ip} adresini AbuseIPDB'de sorgula`);
-    button.title = found.analysis.ip;
+    if (found.bulk) {
+      button.querySelector(".label").textContent = `${found.bulk.length} IP’yi sorgula`;
+      button.setAttribute("aria-label", `Seçimdeki ${found.bulk.length} IP adresini AbuseIPDB'de sorgula`);
+      button.title = found.bulk.map((a) => a.ip).join(", ");
+    } else {
+      button.querySelector(".label").textContent = "IP’yi sorgula";
+      button.setAttribute("aria-label", `${found.analysis.ip} adresini AbuseIPDB'de sorgula`);
+      button.title = found.analysis.ip;
+    }
     place(button, found.rect);
   }
 
@@ -201,16 +224,20 @@
     }
   }
 
-  function openCard(analysis, rect) {
+  function createCard(label, rect) {
     ensureRoot();
     closeCard();
     card = el("div", "card");
     card.setAttribute("role", "dialog");
-    card.setAttribute("aria-label", `AbuseIPDB sonucu: ${analysis.ip}`);
+    card.setAttribute("aria-label", label);
     card.tabIndex = -1;
     for (const type of ["keydown", "keyup", "keypress"]) card.addEventListener(type, (event) => event.stopPropagation());
     card.dataset.anchor = JSON.stringify({ left: rect.left, top: rect.top, bottom: rect.bottom });
     ui.append(card);
+  }
+
+  function openCard(analysis, rect) {
+    createCard(`AbuseIPDB sonucu: ${analysis.ip}`, rect);
     renderLoading(analysis.ip);
     card.focus({ preventScroll: true });
     runLookup(analysis, false);
@@ -577,6 +604,160 @@
     }
   }
 
+  // ---------- bulk lookup ----------
+
+  const SHORT_ERRORS = {
+    rate_limited: "istek sınırı",
+    unauthorized: "anahtar geçersiz",
+    forbidden: "reddedildi",
+    network: "ağ hatası",
+    timeout: "zaman aşımı",
+    server_error: "sunucu hatası",
+    bad_response: "okunamadı",
+    extension_unavailable: "sayfayı yenileyin",
+  };
+  const STOP_CODES = new Set(["rate_limited", "unauthorized", "forbidden", "extension_unavailable"]);
+
+  function bulkStatus(item) {
+    const cell = el("span", "bulk-status");
+    const r = item.response;
+    if (item.running) cell.append(el("span", "muted", "sorgulanıyor…"));
+    else if (!r) cell.append(el("span", "muted", "bekliyor"));
+    else if (r.status === "ok") {
+      const score = r.data.abuseConfidenceScore;
+      cell.append(el("span", `mini-chip sev-${severity(score)}`, score === null ? "?" : String(score)));
+      const where = [r.data.countryCode, r.data.isp].filter(Boolean).join(" · ");
+      if (where) cell.append(el("span", "bulk-where", where));
+    } else if (r.status === "local") cell.append(el("span", "muted", r.label));
+    else if (r.status === "no_key") cell.append(el("span", "muted", "anahtar yok"));
+    else if (r.status === "skipped") cell.append(el("span", "muted", "atlandı"));
+    else cell.append(el("span", "error-text", SHORT_ERRORS[r.code] || "hata"));
+    return cell;
+  }
+
+  function bulkRow(item) {
+    const row = el("li", "bulk-row");
+    const link = el("a", "bulk-ip", item.analysis.ip);
+    link.href = detailUrl(item.analysis.ip);
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.title = "AbuseIPDB'de aç";
+    row.append(link, bulkStatus(item));
+    item.row = row;
+    return row;
+  }
+
+  function updateBulkRow(item) {
+    item.row?.replaceChild(bulkStatus(item), item.row.lastChild);
+  }
+
+  function overallSeverity(ctx) {
+    const scores = ctx.items.map((i) => i.response?.status === "ok" ? i.response.data.abuseConfidenceScore : null).filter((n) => typeof n === "number");
+    return scores.length ? severity(Math.max(...scores)) : "info";
+  }
+
+  function renderBulk(ctx) {
+    const pub = ctx.items.filter((i) => i.analysis.isPublic).length;
+    const local = ctx.items.length - pub;
+    const summary = [`${pub} genel IP`];
+    if (local) summary.push(`${local} özel/yerel IP (sorgulanmaz)`);
+    const parts = [el("p", "bulk-summary", summary.join(" · "))];
+    if (ctx.truncated) parts.push(el("p", "note", `Seçimde daha fazla IP var; ilk ${ctx.items.length} IP alındı.`));
+
+    if (ctx.phase === "confirm") {
+      const box = el("div", "panel");
+      box.append(el("p", "panel-title", `${pub} sorgu yapılacak`), el("p", "panel-text", "Her genel IP günlük AbuseIPDB hakkınızdan bir sorgu düşer. Önbellekteki IP'ler hak harcamaz."));
+      parts.push(box);
+    }
+
+    const list = el("ol", "bulk-list");
+    for (const item of ctx.items) list.append(bulkRow(item));
+    parts.push(list);
+
+    if (ctx.phase === "confirm") {
+      parts.push(footer(null, [actionButton("Sorgulamayı başlat", () => runBulk(ctx))]));
+    } else if (ctx.phase === "done") {
+      if (ctx.stopReason) {
+        const text = ctx.stopReason === "no_key"
+          ? "API anahtarı tanımlı değil; sorgu yapılmadı."
+          : `Sorgu durduruldu: ${ERROR_MESSAGES[ctx.stopReason] || "hata"}`;
+        parts.push(el("p", "message error", text));
+      }
+      const okCount = ctx.items.filter((i) => i.response?.status === "ok").length;
+      parts.push(noteBox());
+      const quota = describeQuota(ctx.quota);
+      if (quota) parts.push(el("p", quota.low ? "quota low" : "quota", quota.text));
+      const actions = [];
+      if (okCount > 0) {
+        const copy = actionButton(`Hepsini Excel'e kopyala (${okCount})`, () => copyBulk(copy, ctx));
+        copy.classList.add("primary");
+        actions.push(copy);
+      }
+      if (ctx.stopReason === "no_key" || ctx.stopReason === "unauthorized") actions.push(optionsButton("API anahtarı ekle"));
+      parts.push(footer(null, actions));
+    }
+    setCardContent(`Toplu sorgu · ${ctx.items.length} IP`, overallSeverity(ctx), parts);
+  }
+
+  async function copyBulk(button, ctx) {
+    const { template } = await getExportSettings();
+    const note = currentNote();
+    const rows = ctx.items.filter((i) => i.response?.status === "ok").map((i) => ({ ...i.response, note }));
+    const ok = await copyText(globalThis.ExportTools.buildRows(template, rows));
+    const label = button.textContent;
+    button.textContent = ok ? `Kopyalandı ✓ (${rows.length} satır)` : "Kopyalanamadı";
+    setTimeout(() => {
+      if (button.isConnected) button.textContent = label;
+    }, 1800);
+  }
+
+  function openBulkCard(found) {
+    createCard(`Toplu AbuseIPDB sorgusu: ${found.bulk.length} IP`, found.rect);
+    const items = found.bulk.map((analysis) => ({
+      analysis,
+      response: analysis.isPublic ? null : { status: "local", label: analysis.label },
+    }));
+    const publicCount = items.filter((i) => !i.response).length;
+    const ctx = { items, truncated: found.truncated, phase: publicCount > BULK_AUTOSTART ? "confirm" : "running", quota: null, stopReason: null };
+    renderBulk(ctx);
+    card.focus({ preventScroll: true });
+    if (ctx.phase === "running") runBulk(ctx);
+  }
+
+  async function runBulk(ctx) {
+    const seq = ++requestSeq;
+    if (ctx.phase !== "running") {
+      ctx.phase = "running";
+      renderBulk(ctx);
+    }
+    const queue = ctx.items.filter((i) => !i.response);
+    const worker = async () => {
+      while (queue.length > 0 && !ctx.stopReason) {
+        const item = queue.shift();
+        item.running = true;
+        updateBulkRow(item);
+        let response;
+        try {
+          response = await sendMessage({ type: "lookup", ip: item.analysis.ip });
+        } catch {
+          response = { status: "error", code: "extension_unavailable" };
+        }
+        if (seq !== requestSeq) return;
+        item.running = false;
+        item.response = response;
+        if (response?.quota) ctx.quota = response.quota;
+        updateBulkRow(item);
+        if (response?.status === "no_key") ctx.stopReason = "no_key";
+        else if (response?.status === "error" && STOP_CODES.has(response.code)) ctx.stopReason = response.code;
+      }
+    };
+    await Promise.all(Array.from({ length: BULK_CONCURRENCY }, worker));
+    if (seq !== requestSeq) return; // card closed meanwhile
+    for (const item of queue) item.response = { status: "skipped" };
+    ctx.phase = "done";
+    renderBulk(ctx);
+  }
+
   async function sendMessage(message) {
     if (!ext.runtime?.id) throw new Error("extension_unavailable");
     return ext.runtime.sendMessage(message);
@@ -639,6 +820,6 @@
     const found = readSelection();
     if (!found) return;
     hideButton();
-    openCard(found.analysis, found.rect);
+    openFound(found);
   });
 })();

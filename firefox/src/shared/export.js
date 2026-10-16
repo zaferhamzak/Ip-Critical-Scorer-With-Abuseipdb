@@ -141,6 +141,11 @@
     return join(values.map((v) => cell(v, template)), template);
   }
 
+  /** Several results -> several lines; Excel pastes each line into its own row. */
+  function buildRows(rawTemplate, results) {
+    return results.map((r) => buildRow(rawTemplate, r)).join("\n");
+  }
+
   const FIELD_LIST = Object.entries(FIELDS).map(([key, f]) => ({ key, header: f.header }));
 
   globalThis.ExportTools = Object.freeze({
@@ -152,6 +157,7 @@
     columnHeader,
     buildHeader,
     buildRow,
+    buildRows,
     formatDateTime,
   });
 })();

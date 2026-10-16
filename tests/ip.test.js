@@ -94,3 +94,23 @@ test("detailUrl only ever builds the fixed AbuseIPDB check URL", () => {
   assert.equal(detailUrl("2001:4860:4860:0::8888"), "https://www.abuseipdb.com/check/2001:4860:4860::8888");
   assert.equal(detailUrl("../../evil"), "https://www.abuseipdb.com/");
 });
+
+test("extractIps finds distinct IPs in log text, in order, and skips look-alikes", () => {
+  const { extractIps } = globalThis.IpTools;
+  const log = `2026-10-16 09:41:07 DENY src=8.8.8.8:443 dst=10.20.4.18 proto=TCP
+    09:41:08 ALLOW src=[2001:4860:4860::8888]:53 dst=1.1.1[.]1 mac=aa:bb:cc:dd:ee:ff ver=1.2.3.4.5 again 8.8.8.8
+    bad 999.1.1.1 and 01.2.3.4`;
+  const { ips, truncated } = extractIps(log);
+  assert.deepEqual(ips.map((x) => x.ip), ["8.8.8.8", "10.20.4.18", "2001:4860:4860::8888", "1.1.1.1"]);
+  assert.equal(truncated, false);
+  assert.equal(ips[1].isPublic, false);
+});
+
+test("extractIps caps the result at 50 and reports truncation", () => {
+  const { extractIps } = globalThis.IpTools;
+  const many = Array.from({ length: 70 }, (_, i) => `1.1.${Math.floor(i / 250)}.${i + 1}`).join(" ");
+  const r = extractIps(many);
+  assert.equal(r.ips.length, 50);
+  assert.equal(r.truncated, true);
+  assert.deepEqual(extractIps("no addresses here 12:30:45"), { ips: [], truncated: false });
+});

@@ -190,11 +190,47 @@
     return { ip: parsed.ip, version: parsed.version, ...classifyParsed(parsed) };
   }
 
+  const MAX_EXTRACT_TEXT = 20000;
+  const MAX_EXTRACT_IPS = 50;
+  // IPv4 (optionally defanged with [.]) and IPv6-looking tokens; each candidate is then
+  // validated by analyzeSelection, so timestamps, MACs and versions are discarded.
+  const IPV4_CANDIDATE = /(?<![\d.])\d{1,3}(?:(?:\.|\[\.\])\d{1,3}){3}(?![\d]|\.\d|\[\.\])/g;
+  const IPV6_CANDIDATE = /(?<![0-9A-Za-z:])[0-9A-Fa-f]{0,4}(?::[0-9A-Fa-f]{0,4}){2,7}(?:\.\d{1,3}){0,3}(?![0-9A-Za-z:])/g;
+
+  /**
+   * Finds every distinct IP in a block of text (log line, table rows), in order of
+   * appearance. Returns { ips: [analysis...], truncated } with at most 50 entries.
+   */
+  function extractIps(text) {
+    if (typeof text !== "string" || text.length === 0) return { ips: [], truncated: false };
+    const source = text.slice(0, MAX_EXTRACT_TEXT);
+    const found = [];
+    for (const re of [IPV4_CANDIDATE, IPV6_CANDIDATE]) {
+      re.lastIndex = 0;
+      for (const m of source.matchAll(re)) found.push({ index: m.index, token: m[0] });
+    }
+    found.sort((a, b) => a.index - b.index);
+    const seen = new Set();
+    const ips = [];
+    let truncated = text.length > MAX_EXTRACT_TEXT;
+    for (const { token } of found) {
+      const analysis = analyzeSelection(token);
+      if (!analysis || seen.has(analysis.ip)) continue;
+      if (ips.length === MAX_EXTRACT_IPS) {
+        truncated = true;
+        break;
+      }
+      seen.add(analysis.ip);
+      ips.push(analysis);
+    }
+    return { ips, truncated };
+  }
+
   function detailUrl(ip) {
     const parsed = parseIp(ip);
     if (!parsed) return "https://www.abuseipdb.com/";
     return `https://www.abuseipdb.com/check/${parsed.ip}`;
   }
 
-  globalThis.IpTools = Object.freeze({ MAX_INPUT_LENGTH, cleanSelection, parseIp, analyzeSelection, detailUrl });
+  globalThis.IpTools = Object.freeze({ MAX_INPUT_LENGTH, MAX_EXTRACT_IPS, cleanSelection, parseIp, analyzeSelection, extractIps, detailUrl });
 })();
