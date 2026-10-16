@@ -1,0 +1,9 @@
+{
+  "name": "abuseipdb-chrome",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/",
+    "package": "sh scripts/package.sh"
+  }
+}

@@ -1,0 +1,8 @@
+<!-- Store / 48px+ icon: "IP" lettermark with a red flag dot. Letters are drawn as shapes so no font is needed. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="#1E293B"/>
+  <rect x="33" y="36" width="14" height="56" rx="2" fill="#F8FAFC"/>
+  <rect x="55" y="36" width="14" height="56" rx="2" fill="#F8FAFC"/>
+  <path d="M62 43 H77 A11 11 0 0 1 77 65 H62" fill="none" stroke="#F8FAFC" stroke-width="14" stroke-linejoin="round"/>
+  <circle cx="98" cy="94" r="9" fill="#EF4444"/>
+</svg>

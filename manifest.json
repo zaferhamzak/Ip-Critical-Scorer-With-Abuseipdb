@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "AbuseIPDB IP Lookup",
+  "version": "0.3.0",
+  "description": "Seçilen IP adresini isteğe bağlı olarak AbuseIPDB'de sorgular ve sonucu sayfada küçük bir kartta gösterir.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "minimum_chrome_version": "102",
+  "permissions": [
+    "storage",
+    "scripting",
+    "activeTab",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://api.abuseipdb.com/*",
+    "https://api.github.com/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "AbuseIPDB IP Lookup",
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
+  },
+  "options_ui": {
+    "page": "src/options/options.html",
+    "open_in_tab": true
+  },
+  "commands": {
+    "lookup-selection": {
+      "suggested_key": {
+        "default": "Alt+Shift+A"
+      },
+      "description": "Seçili IP adresini sorgula"
+    }
+  }
+}

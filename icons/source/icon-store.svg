@@ -1,0 +1,10 @@
+<!-- Chrome Web Store 128px icon: same artwork scaled to 96px with 16px transparent padding. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <g transform="translate(16 16) scale(0.75)">
+    <rect x="0" y="0" width="128" height="128" rx="28" fill="#1E293B"/>
+    <rect x="29" y="30" width="16" height="66" rx="2" fill="#F8FAFC"/>
+    <rect x="54" y="30" width="16" height="66" rx="2" fill="#F8FAFC"/>
+    <path d="M62 38 H80 A13 13 0 0 1 80 64 H62" fill="none" stroke="#F8FAFC" stroke-width="16" stroke-linejoin="round"/>
+    <circle cx="103" cy="101" r="11" fill="#EF4444"/>
+  </g>
+</svg>
