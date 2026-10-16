@@ -32,6 +32,12 @@ version_gt() {
     print 0 }'
 }
 
+# Never overwrite a development checkout: files not in the release would be deleted.
+if [ -e "$target/.git" ]; then
+  log "error: '$target' is a git checkout; auto-update only manages folders extracted from a release ZIP"
+  exit 1
+fi
+
 current=$(manifest_version "$target/manifest.json")
 
 tmp=$(mktemp -d)

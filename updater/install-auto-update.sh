@@ -9,6 +9,11 @@ if [ ! -f "$ext_dir/manifest.json" ]; then
   exit 1
 fi
 
+if [ -e "$ext_dir/.git" ]; then
+  echo "Hata: bu bir geliştirme klasörü (git deposu). Otomatik güncelleme yalnızca Releases'tan indirilen ZIP klasörüne kurulur." >&2
+  exit 1
+fi
+
 case "$(uname -s)" in
   Darwin)
     support="$HOME/Library/Application Support/IpCriticalScorer"

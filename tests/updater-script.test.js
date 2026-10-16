@@ -87,6 +87,15 @@ test("refuses a package whose manifest version does not match the tag", () => {
   assert.match(readFileSync(join(f.target, "manifest.json"), "utf8"), /"version": "0\.3\.0"/);
 });
 
+test("refuses to touch a git checkout", () => {
+  const { target, env } = fixture();
+  mkdirSync(join(target, ".git"));
+  const r = run(target, env);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /git checkout/);
+  assert.equal(existsSync(join(target, "src", "removed.js")), true);
+});
+
 test("rejects a folder without a manifest", () => {
   const { root, env } = fixture();
   const r = run(join(root, "nope"), env);
