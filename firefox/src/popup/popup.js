@@ -1,5 +1,5 @@
 import { ext } from "../shared/ext.js";
-import { siteInputToMatchPattern } from "../shared/settings.js";
+import { STORAGE_KEYS, describeQuota, siteInputToMatchPattern } from "../shared/settings.js";
 import { bindApiKeyForm } from "../ui/api-key-form.js";
 
 const $ = (id) => document.getElementById(id);
@@ -53,6 +53,20 @@ $("site-enable").addEventListener("click", () => {
 
 // Updates are delivered by the Chrome Web Store; just show what is running.
 $("version-status").textContent = `v${ext.runtime.getManifest().version} · Chrome Web Store tarafından otomatik güncellenir`;
+
+async function renderQuota() {
+  const stored = await ext.storage.local.get(STORAGE_KEYS.quota);
+  const quota = describeQuota(stored[STORAGE_KEYS.quota]);
+  const line = $("quota-status");
+  if (!quota) return;
+  const updated = stored[STORAGE_KEYS.quota].updatedAt;
+  const at = updated ? ` · ${new Intl.DateTimeFormat("tr-TR", { timeStyle: "short" }).format(new Date(updated))} itibarıyla` : "";
+  line.textContent = quota.text + at;
+  line.classList.toggle("low", quota.low);
+  line.hidden = false;
+}
+
+renderQuota().catch(() => {});
 
 $("open-options").addEventListener("click", () => ext.runtime.openOptionsPage());
 

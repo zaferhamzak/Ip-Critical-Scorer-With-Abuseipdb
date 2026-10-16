@@ -258,6 +258,9 @@ dd { margin: 0; overflow-wrap: anywhere; }
 }
 .note-input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 
+.quota { margin: 10px 0 0; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.quota.low { color: #b45309; font-weight: 600; }
+
 .footer {
   display: flex;
   align-items: center;

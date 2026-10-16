@@ -165,3 +165,28 @@ test("HTTP, network, timeout and malformed responses map to error codes and are 
     assert.equal(Object.keys(session.store).filter((k) => k.startsWith("cache:")).length, 0, code);
   }
 });
+
+test("daily quota is read from X-RateLimit headers, stored and returned (also for cache hits)", async () => {
+  const resetEpoch = 1_700_050_000;
+  const { service, local } = setup({
+    fetchImpl: async (url) => jsonResponse(responseFor(new URL(url).searchParams.get("ipAddress")), 200, {
+      "X-RateLimit-Limit": "1000", "X-RateLimit-Remaining": "874", "X-RateLimit-Reset": String(resetEpoch),
+    }),
+  });
+  const first = await service.lookup({ ip: PUBLIC_IP });
+  assert.deepEqual(first.quota, { limit: 1000, remaining: 874, resetAt: resetEpoch * 1000, updatedAt: 1_700_000_000_000 });
+  assert.deepEqual(local.store.quota, first.quota);
+  const cached = await service.lookup({ ip: PUBLIC_IP });
+  assert.equal(cached.fromCache, true);
+  assert.equal(cached.quota.remaining, 874);
+});
+
+test("missing quota headers leave quota unknown; 429 records zero remaining", async () => {
+  const plain = setup();
+  assert.equal((await plain.service.lookup({ ip: PUBLIC_IP })).quota, null);
+  const limited = setup({ fetchImpl: async () => jsonResponse({ errors: [] }, 429, { "Retry-After": "60", "X-RateLimit-Limit": "1000" }) });
+  const r = await limited.service.lookup({ ip: PUBLIC_IP });
+  assert.equal(r.code, "rate_limited");
+  assert.equal(r.quota.remaining, 0);
+  assert.equal(r.quota.limit, 1000);
+});

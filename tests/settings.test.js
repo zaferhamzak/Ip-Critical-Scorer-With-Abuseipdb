@@ -83,3 +83,12 @@ test("notes are single-line, trimmed and capped; quick notes are unique and limi
   assert.equal(normalizeQuickNotes(Array.from({ length: 20 }, (_, i) => `n${i}`)).length, 10);
   assert.deepEqual(normalizeQuickNotes([]), []);
 });
+
+test("describeQuota formats remaining quota and flags low or reset states", async () => {
+  const { describeQuota } = await import("../chromium/src/shared/settings.js");
+  assert.equal(describeQuota(null), null);
+  assert.deepEqual(describeQuota({ limit: 1000, remaining: 874, resetAt: 2_000, updatedAt: 1 }, 1_000), { text: "Kalan hak: 874 / 1.000", low: false });
+  assert.equal(describeQuota({ limit: 1000, remaining: 42, resetAt: 2_000 }, 1_000).low, true);
+  assert.match(describeQuota({ limit: 1000, remaining: 0, resetAt: 2_000 }, 3_000).text, /yenilendi/);
+  assert.equal(describeQuota({ limit: null, remaining: 5, resetAt: null }, 1).text, "Kalan hak: 5");
+});

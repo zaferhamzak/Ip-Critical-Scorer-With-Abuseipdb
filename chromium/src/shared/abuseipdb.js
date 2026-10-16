@@ -92,6 +92,18 @@ function headerNumber(headers, name) {
   return Number(raw);
 }
 
+/**
+ * Daily quota from the X-RateLimit-* headers AbuseIPDB sends with every check response.
+ * Returns null when the headers are missing (e.g. not exposed to the caller).
+ */
+export function readQuota(headers, now) {
+  const limit = headerNumber(headers, "X-RateLimit-Limit");
+  const remaining = headerNumber(headers, "X-RateLimit-Remaining");
+  if (limit === null || remaining === null) return null;
+  const resetEpoch = headerNumber(headers, "X-RateLimit-Reset");
+  return { limit, remaining: Math.min(remaining, limit), resetAt: resetEpoch === null ? null : resetEpoch * 1000, updatedAt: now };
+}
+
 /** Converts a non-2xx response into a LookupError. */
 export function errorFromResponse(status, headers, now) {
   switch (true) {

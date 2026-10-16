@@ -118,6 +118,21 @@ export function mergeSettings(stored) {
   };
 }
 
+/**
+ * Human-readable daily quota from the stored X-RateLimit-* snapshot.
+ * Returns null when nothing is known yet. `low` is true below 10% of the limit.
+ */
+export function describeQuota(quota, now = Date.now()) {
+  if (!quota || typeof quota.remaining !== "number") return null;
+  const n = new Intl.NumberFormat("tr-TR");
+  if (typeof quota.resetAt === "number" && now >= quota.resetAt) {
+    return { text: "Kalan hak: yenilendi (yeni sorguda güncellenir)", low: false };
+  }
+  const limit = typeof quota.limit === "number" ? ` / ${n.format(quota.limit)}` : "";
+  const low = typeof quota.limit === "number" && quota.remaining < quota.limit * 0.1;
+  return { text: `Kalan hak: ${n.format(quota.remaining)}${limit}`, low };
+}
+
 const HOST_LABEL = "[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?";
 const SITE_INPUT_RE = new RegExp(
   "^(?:(https?)://)?" + // optional scheme

@@ -442,6 +442,18 @@
     return name && name !== code ? `${name} (${code})` : code;
   }
 
+  // Same wording as describeQuota() in shared/settings.js (ES module, not loadable here).
+  function describeQuota(quota) {
+    if (!quota || typeof quota.remaining !== "number") return null;
+    const n = new Intl.NumberFormat("tr-TR");
+    if (typeof quota.resetAt === "number" && Date.now() >= quota.resetAt) {
+      return { text: "Kalan hak: yenilendi (yeni sorguda güncellenir)", low: false };
+    }
+    const limit = typeof quota.limit === "number" ? ` / ${n.format(quota.limit)}` : "";
+    const low = typeof quota.limit === "number" && quota.remaining < quota.limit * 0.1;
+    return { text: `Kalan hak: ${n.format(quota.remaining)}${limit}`, low };
+  }
+
   function periodText(days) {
     return days === 365 ? "1 yıl" : `${days} gün`;
   }
@@ -506,6 +518,8 @@
       ? `AbuseIPDB APIv2 · ${fetched} · önbellekten (${response.ttlMinutes} dk)`
       : `AbuseIPDB APIv2 · ${fetched}`;
     parts.push(noteBox());
+    const quota = describeQuota(response.quota);
+    if (quota) parts.push(el("p", quota.low ? "quota low" : "quota", quota.text));
     parts.push(
       footer(meta, [
         actionLink("AbuseIPDB'de aç", response.detailUrl || detailUrl(analysis.ip)),

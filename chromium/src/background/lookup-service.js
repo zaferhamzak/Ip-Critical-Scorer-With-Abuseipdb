@@ -5,6 +5,7 @@ import "../shared/ip.js";
 import {
   LookupError,
   buildCheckRequest,
+  readQuota,
   errorFromResponse,
   normalizeCheckResponse,
 } from "../shared/abuseipdb.js";
@@ -61,6 +62,12 @@ export function createLookupService({ fetchFn, localArea, sessionArea, now = Dat
     } finally {
       clearTimeout(timer);
     }
+    if (response.status === 429) {
+      const limit = Number(response.headers?.get?.("X-RateLimit-Limit"));
+      const error = errorFromResponse(response.status, response.headers, now());
+      await writeQuota({ limit: Number.isInteger(limit) && limit > 0 ? limit : null, remaining: 0, resetAt: error.retryAt, updatedAt: now() });
+      throw error;
+    }
     if (!response.ok) throw errorFromResponse(response.status, response.headers, now());
     let body;
     try {
@@ -68,7 +75,19 @@ export function createLookupService({ fetchFn, localArea, sessionArea, now = Dat
     } catch {
       throw new LookupError("bad_response");
     }
-    return normalizeCheckResponse(body, ip, maxAgeInDays);
+    const data = normalizeCheckResponse(body, ip, maxAgeInDays);
+    const quota = readQuota(response.headers, now());
+    if (quota) await writeQuota(quota);
+    return data;
+  }
+
+  async function writeQuota(quota) {
+    await localArea.set({ [STORAGE_KEYS.quota]: quota });
+  }
+
+  async function readStoredQuota() {
+    const quota = (await localArea.get(STORAGE_KEYS.quota))?.[STORAGE_KEYS.quota];
+    return quota && typeof quota.remaining === "number" ? quota : null;
   }
 
   async function runFetch(ip, apiKey, maxAgeInDays) {
@@ -104,7 +123,7 @@ export function createLookupService({ fetchFn, localArea, sessionArea, now = Dat
     const ttlMs = settings.cacheTtlMinutes * 60_000;
     const cached = await readCache(analysis.ip, ttlMs, settings.maxAgeInDays);
     if (cached && (!refresh || now() - cached.fetchedAt < MIN_REFRESH_INTERVAL_MS)) {
-      return { ...base, status: "ok", data: cached.data, fetchedAt: cached.fetchedAt, fromCache: true, ttlMinutes: settings.cacheTtlMinutes };
+      return { ...base, status: "ok", data: cached.data, fetchedAt: cached.fetchedAt, fromCache: true, ttlMinutes: settings.cacheTtlMinutes, quota: await readStoredQuota() };
     }
 
     const blockedUntil = (await sessionArea.get(RATE_LIMIT_STATE_KEY))?.[RATE_LIMIT_STATE_KEY];
@@ -119,7 +138,7 @@ export function createLookupService({ fetchFn, localArea, sessionArea, now = Dat
       inflight.set(inflightKey, pending);
     }
     const result = await pending;
-    return { ...base, ...result, ttlMinutes: settings.cacheTtlMinutes };
+    return { ...base, ...result, ttlMinutes: settings.cacheTtlMinutes, quota: await readStoredQuota() };
   }
 
   return { lookup };
