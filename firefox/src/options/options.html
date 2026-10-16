@@ -135,6 +135,22 @@
       </form>
     </section>
 
+    <section aria-labelledby="share-title">
+      <h2 id="share-title">Ayarları paylaş</h2>
+      <p class="hint">
+        Excel şablonu, hazır notlar, süreler ve site listesi bir dosyaya kaydedilir; ekip arkadaşınız aynı dosyayı içe aktarır.
+        API anahtarı ve sorgu geçmişi dosyaya <strong>girmez</strong>.
+      </p>
+      <div class="row">
+        <button type="button" id="settings-export" class="secondary">Ayarları dışa aktar</button>
+        <button type="button" id="settings-import" class="secondary">Ayar dosyası içe aktar</button>
+        <input type="file" id="settings-file" accept="application/json,.json" hidden>
+      </div>
+      <div class="row">
+        <button type="button" id="settings-grant-sites" hidden></button>
+      </div>
+    </section>
+
     <p id="message" role="status" aria-live="polite"></p>
   </main>
 </body>

@@ -12,6 +12,7 @@ import {
 } from "../shared/settings.js";
 import { bindApiKeyForm } from "../ui/api-key-form.js";
 import { initExportEditor } from "./export-editor.js";
+import { buildSettingsFile, parseSettingsFile } from "../shared/settings.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -159,6 +160,51 @@ $("site-form").addEventListener("submit", guard(addSite));
 $("site-all").addEventListener("click", guard(() => requestSites(ALL_SITES_PATTERNS)));
 ext.permissions.onAdded.addListener(() => renderSites());
 ext.permissions.onRemoved.addListener(() => renderSites());
+
+let importedSites = [];
+
+async function exportSettings() {
+  const stored = await ext.storage.local.get(null);
+  const { origins = [] } = await ext.permissions.getAll();
+  const file = buildSettingsFile(stored, origins);
+  const url = URL.createObjectURL(new Blob([JSON.stringify(file, null, 2)], { type: "application/json" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "ip-critical-scorer-ayarlar.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showMessage("Ayar dosyası indirildi. API anahtarı ve geçmiş dosyada yok.");
+}
+
+async function importSettings(file) {
+  const { settings, rawTemplate, sites } = parseSettingsFile(await file.text());
+  if (rawTemplate) settings[STORAGE_KEYS.exportTemplate] = globalThis.ExportTools.normalizeTemplate(rawTemplate);
+  await ext.storage.local.set(settings);
+  const { origins = [] } = await ext.permissions.getAll();
+  importedSites = sites.filter((s) => !origins.includes(s));
+  const grant = $("settings-grant-sites");
+  grant.hidden = importedSites.length === 0;
+  grant.textContent = `Dosyadaki ${importedSites.length} siteye izin ver`;
+  await renderSettings();
+  showMessage(`Ayarlar içe aktarıldı (${Object.keys(settings).length} ayar).${importedSites.length ? " Site izinleri için aşağıdaki butona basın." : ""} Excel şablonunu görmek için sayfayı yenileyin.`);
+}
+
+$("settings-export").addEventListener("click", guard(exportSettings));
+$("settings-import").addEventListener("click", () => $("settings-file").click());
+$("settings-file").addEventListener("change", (event) => {
+  const file = event.target.files?.[0];
+  event.target.value = "";
+  if (!file) return;
+  importSettings(file).catch((error) => showMessage(error.message || "Dosya içe aktarılamadı.", "error"));
+});
+// permissions.request must run directly in the click handler (user gesture).
+$("settings-grant-sites").addEventListener("click", () => {
+  if (importedSites.length === 0) return;
+  ext.permissions.request({ origins: importedSites }).then((granted) => {
+    showMessage(granted ? "Site izinleri verildi. Açık sekmeleri yenileyin." : "Site izinleri verilmedi.", granted ? "ok" : "error");
+    if (granted) $("settings-grant-sites").hidden = true;
+  });
+});
 
 guard(renderSettings)();
 initExportEditor().catch((error) => console.error(error));

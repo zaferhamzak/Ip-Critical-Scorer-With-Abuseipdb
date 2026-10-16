@@ -92,3 +92,29 @@ test("describeQuota formats remaining quota and flags low or reset states", asyn
   assert.match(describeQuota({ limit: 1000, remaining: 0, resetAt: 2_000 }, 3_000).text, /yenilendi/);
   assert.equal(describeQuota({ limit: null, remaining: 5, resetAt: null }, 1).text, "Kalan hak: 5");
 });
+
+test("settings file round-trips without the API key or history", async () => {
+  const { buildSettingsFile, parseSettingsFile } = await import("../chromium/src/shared/settings.js");
+  const stored = { apiKey: "k".repeat(80), history: [{ ip: "8.8.8.8" }], cacheTtlMinutes: 30, quickNotes: ["FP", "Blok"], exportTemplate: { columns: [{ kind: "field", field: "ip" }] }, highlightKnown: true };
+  const file = buildSettingsFile(stored, ["https://siem.example.com/*", "https://api.abuseipdb.com/*"], 0);
+  const text = JSON.stringify(file);
+  assert.ok(!text.includes("kkkk") && !text.includes("8.8.8.8"));
+  assert.deepEqual(file.sites, ["https://siem.example.com/*"]);
+  const parsed = parseSettingsFile(text);
+  assert.equal(parsed.settings.cacheTtlMinutes, 30);
+  assert.deepEqual(parsed.settings.quickNotes, ["FP", "Blok"]);
+  assert.equal(parsed.settings.highlightKnown, true);
+  assert.deepEqual(parsed.rawTemplate, { columns: [{ kind: "field", field: "ip" }] });
+  assert.deepEqual(parsed.sites, ["https://siem.example.com/*"]);
+  assert.equal("apiKey" in parsed.settings, false);
+});
+
+test("settings file import rejects foreign or malicious content", async () => {
+  const { parseSettingsFile } = await import("../chromium/src/shared/settings.js");
+  assert.throws(() => parseSettingsFile("not json"), /JSON/);
+  assert.throws(() => parseSettingsFile(JSON.stringify({ app: "other", version: 1, settings: {} })), /ayar dosyası değil/);
+  const bad = parseSettingsFile(JSON.stringify({ app: "ip-critical-scorer", version: 1, settings: { apiKey: "x", cacheTtlMinutes: 99999, historyEnabled: "yes" }, sites: ["<all_urls>", "file:///etc", "https://ok.example/*", 7] }));
+  assert.deepEqual(bad.settings, {});
+  assert.deepEqual(bad.sites, ["https://ok.example/*"]);
+  assert.throws(() => parseSettingsFile("x".repeat(200_000)), /büyük/);
+});

@@ -13,6 +13,8 @@ Sayfada seçtiğiniz IP adresinin AbuseIPDB itibar skorunu aynı sayfada küçü
 - IPv4 ve IPv6 desteklenir. `8.8.8[.]8`, `8.8.8.8:443`, `[2001:db8::1]:443` gibi yazımlar da tanınır.
 - Özel ve yerel adresler (`10.x`, `192.168.x`, `127.x`, `fe80::`, CGNAT, dokümantasyon aralıkları vb.) dışarı gönderilmez; kartta adresin türü açıklanır.
 - API anahtarı girilmemişse kart, AbuseIPDB'deki detay sayfasına bağlantı verir.
+- Birden fazla IP içeren bir log satırını ya da tabloyu seçerseniz hepsi tek seferde sorgulanır (toplu sorgu).
+- Sonuçlar notunuzla birlikte Excel'e kopyalanır; tüm sorgular yerel geçmişte birikir ve vardiya sonunda toplu aktarılabilir.
 
 ## Kurulum
 
@@ -68,6 +70,52 @@ Anahtar yalnızca bu tarayıcıda saklanır, ekranda tekrar gösterilmez ve yaln
 
 Klavye kısayolu: IP seçiliyken **Alt+Shift+A** (Mac'te **Option+Shift+A**). Kısayolu `chrome://extensions/shortcuts` adresinden değiştirebilirsiniz.
 
+### Toplu sorgu
+
+Birden fazla IP içeren bir metni (log satırı, tablo satırları) seçin; buton **N IP'yi sorgula** olarak çıkar.
+- En fazla 50 IP alınır. Özel adresler sorgulanmaz, kartta türleri yazılır.
+- 10'dan fazla genel IP varsa kart, günlük haktan kaç sorgu düşeceğini gösterip onay ister.
+- Sonuçlar listede skor rengiyle görünür. Bitince bir not seçip **Hepsini Excel'e kopyala** ile her IP için bir satır kopyalanır.
+- API anahtarı yoksa, geçersizse ya da günlük hak biterse sorgu durur.
+
+Seçimde tek bir IP geçiyorsa (ör. `src=8.8.8.8:443`) normal tekli kart açılır.
+
+### Not ekleyerek kopyalama
+
+Kartta hazır notlardan birine tıklayın (varsayılanlar: “False positive”, “Bloklandı”, “İzlemeye alındı”, “İncelendi, aksiyon yok”) ya da kendi notunuzu yazın. Not, Excel satırında **Not** sütununa girer ve geçmişe de kaydedilir. Hazır notları ayarlardaki Excel bölümünden düzenleyebilirsiniz.
+
+### Klavye kısayolları
+
+| Tuş | İş |
+|---|---|
+| Alt+Shift+A (Mac: Option+Shift+A) | Seçili IP'yi ya da IP'leri sorgula |
+| C | Excel'e kopyala (toplu kartta hepsini) |
+| O | AbuseIPDB'de aç |
+| R | Yenile |
+| 1–9 | Sıradaki hazır notu seç |
+| N | Not alanına geç; not yazıp Enter'a basınca kopyalar |
+| Esc | Kartı kapat |
+
+Örnek akış, fareye dokunmadan: IP'yi seç → Alt+Shift+A → 2 → C.
+
+### Sorgu geçmişi
+
+Başarılı her sorgu yalnızca bu tarayıcıda saklanır (varsayılan 7 gün, en fazla 500 IP, aynı IP tekrar sorgulanırsa en güncel hali kalır). Araç çubuğu simgesi → **Sorgu geçmişi** sayfasında:
+- Bugün / tümü filtresi ve arama (IP, ISP, ülke, not)
+- Seçilenleri ya da görünenleri Excel şablonunuzla tek seferde kopyalama
+- CSV indirme (Excel'in Türkçe karakterleri doğru açması için UTF-8 BOM ve noktalı virgül)
+- Notları sonradan düzenleme, seçilenleri silme, geçmişi temizleme
+
+Geçmiş kaydını ve süresini ayarlardan değiştirebilirsiniz.
+
+### Sayfada bilinen IP'leri işaretleme (isteğe bağlı)
+
+Ayarlardan açarsanız, daha önce sorguladığınız IP'ler izin verdiğiniz sitelerde skor rengiyle (kırmızı, turuncu, yeşil, gri) altı çizili görünür. Yeni sorgu yapılmaz, hak harcanmaz. Sayfa metni yalnızca bu tarayıcıda IP aramak için taranır ve sayfanın kendi yapısı değiştirilmez. Bu özellik Chrome 105 ve üstünde çalışır; desteklemeyen tarayıcılarda ayar kapalı görünür.
+
+### Kalan günlük hak
+
+Her sorgudan sonra AbuseIPDB'nin bildirdiği kalan günlük hak kartın altında ve araç çubuğu penceresinde görünür (ör. “Kalan hak: 874 / 1.000”). %10'un altına düşünce turuncu olur. Bu bilgi için ek sorgu yapılmaz.
+
 Kartta:
 - **AbuseIPDB'de aç** IP'nin AbuseIPDB sayfasını yeni sekmede açar. Raporların ayrıntısı ve daha eski kayıtlar oradadır.
 - **Excel'e kopyala** sonucu tek satır olarak kopyalar (aşağıya bakın).
@@ -83,7 +131,7 @@ Sütunları kendi tablonuza göre ayarlar sayfasındaki **Excel kopyalama şablo
 - **Başlık satırını kopyala** ile yeni bir tabloya başlıkları tek seferde yapıştırın.
 - Boş değerlerin nasıl yazılacağını (boş, “Bilinmiyor”, “-”) ve ayırıcıyı (Excel için sekme, CSV için noktalı virgül) seçin.
 
-Kullanılabilen alanlar: sorgu zamanı, IP, abuse skoru, risk seviyesi, rapor sayısı, kaynak sayısı, son rapor, ülke, ülke kodu, ISP, kullanım türü, alan adı, Tor, beyaz liste, rapor dönemi, AbuseIPDB bağlantısı.
+Kullanılabilen alanlar: sorgu zamanı, IP, IP (defang, ör. `203[.]0[.]113[.]45`), abuse skoru, risk seviyesi, rapor sayısı, kaynak sayısı, son rapor, ülke, ülke kodu, ISP, kullanım türü, alan adı, hostname, Tor, beyaz liste, rapor dönemi, AbuseIPDB bağlantısı, not.
 
 Tarihler `16.10.2026 09:41` biçimindedir. `=`, `+`, `-` ya da `@` ile başlayan metinlerin başına Excel'in formül olarak çalıştırmaması için `'` eklenir. Kopyalama tamamen tarayıcınızda yapılır; hiçbir yere veri gönderilmez.
 
@@ -100,7 +148,14 @@ Tarihler `16.10.2026 09:41` biçimindedir. `=`, `+`, `-` ya da `@` ile başlayan
 | Rapor dönemi | 365 gün | Rapor sayısı ve son rapor tarihi bu dönemi kapsar. AbuseIPDB API en fazla 365 güne izin verir. |
 | Önbellek süresi | 15 dakika | Aynı IP bu süre içinde tekrar sorgulanmaz. Önbellek tarayıcı kapanınca silinir. |
 | Site erişimi | Hiçbiri | Eklentinin çalışacağı siteler. |
-| Excel kopyalama şablonu | 12 sütun | Kopyalanan satırın sütunları ve sırası. |
+| Excel kopyalama şablonu | 13 sütun | Kopyalanan satırın sütunları ve sırası. |
+| Hazır notlar | 4 not | Kartta tek tıkla seçilen notlar. |
+| Sorgu geçmişi | Açık, 7 gün | Yerel geçmiş ve saklama süresi (1–90 gün). |
+| Bilinen IP'leri işaretleme | Kapalı | Daha önce sorgulanan IP'leri sayfada renklendirir. |
+
+### Ayarları ekiple paylaşma
+
+Ayarlar → **Ayarları paylaş** → **Ayarları dışa aktar** ile Excel şablonu, hazır notlar, süreler ve site listesi bir JSON dosyasına kaydedilir. Ekip arkadaşınız **Ayar dosyası içe aktar** ile yükler; site izinleri için ayrıca bir onay butonu çıkar. API anahtarı ve sorgu geçmişi dosyaya girmez.
 
 ## Limitler
 
@@ -118,6 +173,8 @@ Ayrıntılı metin: [PRIVACY.md](PRIVACY.md)
 - Yalnızca seçilen ve doğrulanan IP adresi ile API anahtarınız `api.abuseipdb.com` adresine gönderilir.
 - Sayfanın adresi, içeriği, log metni ya da çerezler hiçbir yere gönderilmez.
 - Telemetri ya da analiz yoktur; geliştiriciye hiçbir veri gitmez.
+- Sorgu geçmişi, notlar ve kalan hak bilgisi yalnızca bu tarayıcıda tutulur.
+- Bilinen IP'leri işaretleme açıksa sayfa metni yalnızca yerelde IP aramak için taranır; hiçbir yere gönderilmez.
 - API anahtarı tarayıcının yerel eklenti depolamasında tutulur; web sayfaları erişemez.
 - Chromium'da eklentinin sayfalara eklenen kendi bileşeni bile anahtarı okuyamaz; anahtarı yalnızca arka plan servisi kullanır. Firefox bu kısıtlamayı (`storage.setAccessLevel`) desteklemediği için Firefox'ta bu ek koruma yoktur.
 
@@ -133,7 +190,7 @@ Ayrıntılı metin: [PRIVACY.md](PRIVACY.md)
 
 ## Sorun giderme
 
-- **Buton çıkmıyor:** Simgeye tıklayıp sitenin etkin olduğunu kontrol edin ve sayfayı yenileyin. IP bir iframe (sayfa içine gömülü başka sayfa) içindeyse eklenti şu an orada çalışmaz.
+- **Buton çıkmıyor:** Simgeye tıklayıp sitenin etkin olduğunu kontrol edin ve sayfayı yenileyin. Eklenti sayfa içindeki çerçevelerde (iframe) de çalışır; ancak çerçeve başka bir alan adından geliyorsa o alan adına da ayarlar → Site erişimi bölümünden izin verin.
 - **"Eklenti yeniden yüklenmiş" mesajı:** Eklenti güncellendiğinde açık sayfalarda görülebilir; sayfayı yenileyin.
 - **401 hatası:** API anahtarı yanlış ya da iptal edilmiş. Simgeden yeni anahtar girin.
 

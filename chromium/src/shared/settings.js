@@ -133,6 +133,63 @@ export function describeQuota(quota, now = Date.now()) {
   return { text: `Kalan hak: ${n.format(quota.remaining)}${limit}`, low };
 }
 
+export const SETTINGS_FILE_APP = "ip-critical-scorer";
+export const SETTINGS_FILE_VERSION = 1;
+const MAX_SETTINGS_FILE = 100_000;
+
+/**
+ * Shareable settings file. Never contains the API key or lookup history.
+ * `exportTemplate` is validated by the caller (ExportTools lives in a classic script).
+ */
+export function buildSettingsFile(stored, sitePatterns, now = Date.now()) {
+  const merged = mergeSettings(stored);
+  return {
+    app: SETTINGS_FILE_APP,
+    version: SETTINGS_FILE_VERSION,
+    exportedAt: new Date(now).toISOString(),
+    settings: {
+      cacheTtlMinutes: merged.cacheTtlMinutes,
+      maxAgeInDays: merged.maxAgeInDays,
+      historyEnabled: merged.historyEnabled,
+      historyDays: merged.historyDays,
+      highlightKnown: merged.highlightKnown,
+      quickNotes: normalizeQuickNotes(stored?.[STORAGE_KEYS.quickNotes]),
+      exportTemplate: stored?.[STORAGE_KEYS.exportTemplate] ?? null,
+    },
+    sites: pagePatternsFromGranted(sitePatterns),
+  };
+}
+
+/** Parses and validates an imported settings file; throws Error with a Turkish message. */
+export function parseSettingsFile(text) {
+  if (typeof text !== "string" || text.length > MAX_SETTINGS_FILE) throw new Error("Dosya çok büyük ya da okunamadı.");
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error("Dosya geçerli bir ayar dosyası değil (JSON okunamadı).");
+  }
+  if (!data || data.app !== SETTINGS_FILE_APP || data.version !== SETTINGS_FILE_VERSION || typeof data.settings !== "object") {
+    throw new Error("Bu dosya IP Critical Scorer ayar dosyası değil.");
+  }
+  const s = data.settings;
+  const settings = {};
+  const ttl = normalizeCacheTtl(s.cacheTtlMinutes);
+  if (ttl !== null) settings[STORAGE_KEYS.cacheTtlMinutes] = ttl;
+  const maxAge = normalizeMaxAge(s.maxAgeInDays);
+  if (maxAge !== null) settings[STORAGE_KEYS.maxAgeInDays] = maxAge;
+  const days = normalizeHistoryDays(s.historyDays);
+  if (days !== null) settings[STORAGE_KEYS.historyDays] = days;
+  if (typeof s.historyEnabled === "boolean") settings[STORAGE_KEYS.historyEnabled] = s.historyEnabled;
+  if (typeof s.highlightKnown === "boolean") settings[STORAGE_KEYS.highlightKnown] = s.highlightKnown;
+  if (Array.isArray(s.quickNotes)) settings[STORAGE_KEYS.quickNotes] = normalizeQuickNotes(s.quickNotes);
+  const rawTemplate = s.exportTemplate && typeof s.exportTemplate === "object" ? s.exportTemplate : null;
+  const sites = Array.isArray(data.sites)
+    ? [...new Set(data.sites.map((x) => (typeof x === "string" ? siteInputToMatchPattern(x.replace(/\/\*$/, "")) : null)).filter(Boolean))].slice(0, 50)
+    : [];
+  return { settings, rawTemplate, sites };
+}
+
 const HOST_LABEL = "[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?";
 const SITE_INPUT_RE = new RegExp(
   "^(?:(https?)://)?" + // optional scheme

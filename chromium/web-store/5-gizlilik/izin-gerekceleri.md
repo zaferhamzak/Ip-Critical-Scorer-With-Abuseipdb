@@ -29,5 +29,5 @@ Kullanıcı “IP’yi sorgula” butonuna bastığında seçilen IP adresini Ab
 ## Optional host permissions: https://*/*, http://*/*
 
 ```
-Varsayılan olarak hiçbir siteye erişim yoktur. Kullanıcı, IP adreslerini gördüğü siteleri (ör. SIEM, log ekranı) kendisi seçip izin verir; eklenti yalnızca bu sitelerde seçim butonunu gösterir. Sayfa içeriği okunmaz ve gönderilmez; yalnızca kullanıcının seçtiği metnin IP adresi olup olmadığı yerel olarak kontrol edilir.
+Varsayılan olarak hiçbir siteye erişim yoktur. Kullanıcı, IP adreslerini gördüğü siteleri (ör. SIEM, log ekranı) kendisi seçip izin verir; eklenti yalnızca bu sitelerde ve bu sitelerin çerçevelerinde seçim butonunu gösterir. Kullanıcının seçtiği metin yalnızca yerelde IP adresi olup olmadığı için kontrol edilir. Kullanıcı isteğe bağlı “bilinen IP'leri işaretle” ayarını açarsa sayfa metni yalnızca yerelde IP aramak için taranır. Sayfa içeriği hiçbir yere gönderilmez.
 ```

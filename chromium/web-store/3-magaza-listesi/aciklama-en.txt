@@ -15,7 +15,13 @@ The card shows
 Features
 • IPv4 and IPv6, including notations such as 8.8.8[.]8 and 8.8.8.8:443
 • Private and local addresses (10.x, 192.168.x, 127.x, fe80:: and others) are never sent; the card explains the address type instead
-• “Copy for Excel”: copies the result as one row, with the columns and order you configure for your own sheet
+• “Copy for Excel”: copies the result as one row, with your note, in the columns and order you configure for your own sheet
+• Bulk lookup: query every IP in a log line or table at once and copy all rows to Excel
+• Lookup history: today's lookups stay in your browser; select and copy them in one go or download CSV
+• Keyboard shortcuts: select → Alt+Shift+A → quick note → C, no mouse needed
+• Remaining daily AbuseIPDB quota shown on the card
+• Optional: previously looked-up IPs are highlighted on pages in their score colour
+• Works inside iframes; settings can be shared with your team as a file
 • Caching and respect for AbuseIPDB rate limits
 • Runs only on sites you enable
 • Light and dark theme, keyboard shortcut (Alt+Shift+A)
