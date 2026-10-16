@@ -45,7 +45,9 @@ async function syncContentScripts() {
     matches,
     js: ["src/shared/ip.js", "src/shared/export.js", "src/content/card-styles.js", "src/content/content-script.js"],
     runAt: "document_idle",
-    allFrames: false,
+    // Also inside iframes (many SIEM consoles render results in frames). A frame from
+    // another origin is only covered when that origin is granted as well.
+    allFrames: true,
     persistAcrossSessions: true,
   };
 
