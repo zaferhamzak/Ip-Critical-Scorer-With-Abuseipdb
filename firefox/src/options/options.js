@@ -10,6 +10,7 @@ import {
   siteInputToMatchPattern,
 } from "../shared/settings.js";
 import { bindApiKeyForm } from "../ui/api-key-form.js";
+import { initExportEditor } from "./export-editor.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -132,4 +133,5 @@ ext.permissions.onAdded.addListener(() => renderSites());
 ext.permissions.onRemoved.addListener(() => renderSites());
 
 guard(renderSettings)();
+initExportEditor().catch((error) => console.error(error));
 guard(renderSites)();

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>IP Critical Scorer – Ayarlar</title>
   <link rel="stylesheet" href="options.css">
+  <script src="../shared/export.js"></script>
   <script type="module" src="options.js"></script>
 </head>
 <body>
@@ -44,6 +45,43 @@
           <button type="submit">Kaydet</button>
         </div>
       </form>
+    </section>
+
+    <section aria-labelledby="export-title">
+      <h2 id="export-title">Excel kopyalama şablonu</h2>
+      <p class="hint">
+        Karttaki <strong>Excel'e kopyala</strong> butonu sonucu bu sütun sırasıyla tek satır olarak kopyalar.
+        Excel'de satırın ilk hücresine yapıştırınca her alan kendi sütununa düşer. Kendi tablonuzdaki
+        “Analist”, “Ticket No” gibi sütunlar için özel sütun ekleyin; değerini boş bırakırsanız o hücre boş kalır.
+      </p>
+      <ol id="export-columns" class="export-columns"></ol>
+      <div class="row">
+        <label class="sr-only" for="export-field">Eklenecek alan</label>
+        <select id="export-field"></select>
+        <button type="button" id="export-add-field" class="secondary">Alan ekle</button>
+        <button type="button" id="export-add-custom" class="secondary">Özel sütun ekle</button>
+      </div>
+      <div class="export-options">
+        <label for="export-empty">Boş değerler</label>
+        <select id="export-empty">
+          <option value="blank">Boş hücre</option>
+          <option value="unknown">“Bilinmiyor” yaz</option>
+          <option value="dash">“-” yaz</option>
+        </select>
+        <label for="export-separator">Ayırıcı</label>
+        <select id="export-separator">
+          <option value="tab">Sekme (Excel'e yapıştırmak için)</option>
+          <option value="semicolon">Noktalı virgül (CSV dosyası için)</option>
+        </select>
+      </div>
+      <h3 class="preview-title">Önizleme (örnek veri)</h3>
+      <div class="export-preview"><table id="export-preview"></table></div>
+      <div class="row">
+        <button type="button" id="export-save">Şablonu kaydet</button>
+        <button type="button" id="export-copy-header" class="secondary">Başlık satırını kopyala</button>
+        <button type="button" id="export-reset" class="secondary">Varsayılana dön</button>
+      </div>
+      <p id="export-status" class="hint" role="status" aria-live="polite"></p>
     </section>
 
     <section aria-labelledby="cache-title">

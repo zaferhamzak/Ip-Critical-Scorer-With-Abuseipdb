@@ -15,6 +15,7 @@ Kartta
 Özellikler
 • IPv4 ve IPv6; 8.8.8[.]8 ve 8.8.8.8:443 gibi yazımlar da tanınır
 • Özel ve yerel adresler (10.x, 192.168.x, 127.x, fe80:: vb.) dışarı gönderilmez, kartta adresin türü açıklanır
+• “Excel'e kopyala”: sonucu kendi tablonuza göre ayarladığınız sütun sırasıyla tek satır olarak kopyalar
 • Önbellek ve AbuseIPDB istek sınırına uyum
 • Yalnızca izin verdiğiniz sitelerde çalışır
 • Açık ve koyu tema, klavye kısayolu (Alt+Shift+A)

@@ -8,6 +8,7 @@
   --accent: #b3261e;
   --ok: #1e6b35;
   --error: #b3261e;
+  --accent-fg: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -20,6 +21,7 @@
     --accent: #f28b82;
     --ok: #81c995;
     --error: #f28b82;
+    --accent-fg: #1d1f23;
   }
 }
 
@@ -78,7 +80,7 @@ button {
   border-radius: 6px;
   border: 1px solid var(--accent);
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-fg);
   cursor: pointer;
 }
 
@@ -100,3 +102,39 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 #message { min-height: 1.5em; }
 #message.ok { color: var(--ok); }
 #message.error { color: var(--error); }
+
+/* Excel template editor */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+select {
+  padding: 6px 8px;
+  font: inherit;
+  color: inherit;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.export-columns { list-style: none; padding: 0; margin: 0 0 8px; display: grid; gap: 6px; counter-reset: col; }
+.export-columns li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.export-columns li::before { counter-increment: col; content: counter(col); color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+.export-columns .kind { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.export-columns .tools { display: flex; gap: 4px; }
+.export-columns .tools button { padding: 4px 8px; }
+.export-options { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 12px; align-items: center; margin: 12px 0; }
+.preview-title { font-size: 13px; margin: 12px 0 6px; color: var(--muted); font-weight: 600; }
+.export-preview { overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; }
+.export-preview table { border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+.export-preview th, .export-preview td { padding: 4px 8px; border-right: 1px solid var(--border); text-align: left; }
+.export-preview th { background: color-mix(in srgb, var(--border) 45%, transparent); }
+.export-preview td { border-top: 1px solid var(--border); }
+@media (max-width: 560px) {
+  .export-columns li { grid-template-columns: 24px minmax(0, 1fr); }
+  .export-columns .kind, .export-columns .tools { grid-column: 2; }
+}

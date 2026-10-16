@@ -15,6 +15,7 @@ The card shows
 Features
 • IPv4 and IPv6, including notations such as 8.8.8[.]8 and 8.8.8.8:443
 • Private and local addresses (10.x, 192.168.x, 127.x, fe80:: and others) are never sent; the card explains the address type instead
+• “Copy for Excel”: copies the result as one row, with the columns and order you configure for your own sheet
 • Caching and respect for AbuseIPDB rate limits
 • Runs only on sites you enable
 • Light and dark theme, keyboard shortcut (Alt+Shift+A)

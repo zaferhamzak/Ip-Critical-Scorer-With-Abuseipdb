@@ -269,10 +269,65 @@
     return b;
   }
 
+  function refreshButton(analysis) {
+    const button = actionButton("↻", () => runLookup(analysis, true));
+    button.classList.add("icon-action");
+    button.title = "Yenile";
+    button.setAttribute("aria-label", "Sonucu yenile");
+    return button;
+  }
+
+  function copyButton(response) {
+    const button = actionButton("Excel'e kopyala", () => copyForExcel(button, response));
+    button.title = "Ayarlardaki Excel şablonuna göre tek satır kopyalar";
+    return button;
+  }
+
   function optionsButton(label) {
     return actionButton(label, () => {
       sendMessage({ type: "openOptions" }).catch(() => {});
     });
+  }
+
+  // Clipboard API needs a secure context; plain-http pages (common for internal tools)
+  // fall back to copying from a hidden textarea inside our shadow root.
+  async function copyText(text) {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {
+      // fall through to the legacy path
+    }
+    const area = el("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0;";
+    ui.append(area);
+    area.select();
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch {
+      ok = false;
+    }
+    area.remove();
+    return ok;
+  }
+
+  async function copyForExcel(button, response) {
+    let template = null;
+    try {
+      template = await sendMessage({ type: "getExportTemplate" });
+    } catch {
+      template = null; // default template
+    }
+    const ok = await copyText(globalThis.ExportTools.buildRow(template, response));
+    button.textContent = ok ? "Kopyalandı ✓" : "Kopyalanamadı";
+    setTimeout(() => {
+      if (button.isConnected) button.textContent = "Excel'e kopyala";
+    }, 1600);
   }
 
   function renderLoading(ip) {
@@ -369,7 +424,8 @@
     parts.push(
       footer(meta, [
         actionLink("AbuseIPDB'de aç", response.detailUrl || detailUrl(analysis.ip)),
-        actionButton("Yenile", () => runLookup(analysis, true)),
+        copyButton(response),
+        refreshButton(analysis),
       ]),
     );
     setCardContent(analysis.ip, sev, parts);

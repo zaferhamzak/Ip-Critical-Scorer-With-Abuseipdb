@@ -3,7 +3,8 @@
 // in-flight request coalescing.
 
 import { ext } from "../shared/ext.js";
-import { pagePatternsFromGranted } from "../shared/settings.js";
+import "../shared/export.js";
+import { STORAGE_KEYS, pagePatternsFromGranted } from "../shared/settings.js";
 import { createLookupService } from "./lookup-service.js";
 
 const CONTENT_SCRIPT_ID = "ip-selector";
@@ -41,7 +42,7 @@ async function syncContentScripts() {
   const script = {
     id: CONTENT_SCRIPT_ID,
     matches,
-    js: ["src/shared/ip.js", "src/content/card-styles.js", "src/content/content-script.js"],
+    js: ["src/shared/ip.js", "src/shared/export.js", "src/content/card-styles.js", "src/content/content-script.js"],
     runAt: "document_idle",
     allFrames: false,
     persistAcrossSessions: true,
@@ -84,6 +85,13 @@ ext.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ status: "error", code: "internal" });
         });
       return true; // async response
+    case "getExportTemplate":
+      // The template lives in storage.local, which content scripts cannot read in Chromium.
+      ext.storage.local
+        .get(STORAGE_KEYS.exportTemplate)
+        .then((stored) => sendResponse(globalThis.ExportTools.normalizeTemplate(stored[STORAGE_KEYS.exportTemplate])))
+        .catch(() => sendResponse(globalThis.ExportTools.normalizeTemplate(null)));
+      return true;
     case "openOptions":
       ext.runtime.openOptionsPage();
       return false;

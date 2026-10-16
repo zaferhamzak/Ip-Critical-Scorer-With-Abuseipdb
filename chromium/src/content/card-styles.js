@@ -237,6 +237,7 @@ dd { margin: 0; overflow-wrap: anywhere; }
 .action.primary { background: var(--btn-bg); border-color: var(--btn-bg); color: var(--btn-fg); }
 .action.primary:hover { filter: brightness(1.15); }
 .action:disabled { opacity: 0.5; cursor: default; }
+.action.icon-action { padding: 6px 10px; font-size: 14px; line-height: 1; }
 
 @keyframes pop { from { opacity: 0; transform: translateY(-3px) scale(0.98); } to { opacity: 1; transform: none; } }
 @keyframes spin { to { transform: rotate(360deg); } }

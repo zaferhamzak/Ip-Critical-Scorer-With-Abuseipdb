@@ -22,6 +22,7 @@ export const STORAGE_KEYS = Object.freeze({
   apiKey: "apiKey",
   cacheTtlMinutes: "cacheTtlMinutes",
   maxAgeInDays: "maxAgeInDays",
+  exportTemplate: "exportTemplate",
 });
 
 // Prefix for cached lookup entries in chrome.storage.session.

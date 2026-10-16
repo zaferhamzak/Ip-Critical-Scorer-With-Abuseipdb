@@ -1,0 +1,180 @@
+// Options page editor for the Excel export template (globalThis.ExportTools from shared/export.js).
+
+import { ext } from "../shared/ext.js";
+import { STORAGE_KEYS } from "../shared/settings.js";
+
+const tools = globalThis.ExportTools;
+const $ = (id) => document.getElementById(id);
+
+// Synthetic sample for the preview; documentation-range IP, not real data.
+const SAMPLE = {
+  status: "ok",
+  fetchedAt: Date.now(),
+  detailUrl: "https://www.abuseipdb.com/check/203.0.113.45",
+  data: {
+    ipAddress: "203.0.113.45", abuseConfidenceScore: 92, totalReports: 214, numDistinctUsers: 61,
+    lastReportedAt: new Date(Date.now() - 3600_000).toISOString(), countryCode: "NL", isp: "Example Hosting B.V.",
+    usageType: "Data Center/Web Hosting/Transit", domain: "example-hosting.test", isTor: false, isWhitelisted: false,
+    maxAgeInDays: 365,
+  },
+};
+
+let template = tools.normalizeTemplate(null);
+let dirty = false;
+
+function setStatus(text) {
+  $("export-status").textContent = text;
+}
+
+function markDirty() {
+  dirty = true;
+  setStatus("Kaydedilmemiş değişiklik var.");
+  renderPreview();
+}
+
+function el(tag, props = {}, text) {
+  const node = document.createElement(tag);
+  Object.assign(node, props);
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function fieldName(key) {
+  return tools.FIELD_LIST.find((f) => f.key === key)?.header ?? key;
+}
+
+function move(index, delta) {
+  const target = index + delta;
+  if (target < 0 || target >= template.columns.length) return;
+  const [col] = template.columns.splice(index, 1);
+  template.columns.splice(target, 0, col);
+  renderColumns();
+  markDirty();
+  $("export-columns").children[target]?.querySelector(delta < 0 ? ".up" : ".down")?.focus();
+}
+
+function renderColumns() {
+  const list = $("export-columns");
+  list.replaceChildren();
+  template.columns.forEach((col, i) => {
+    const li = el("li");
+    const header = el("input", { type: "text", maxLength: 100, value: col.kind === "field" ? col.header ?? "" : col.header });
+    header.placeholder = col.kind === "field" ? fieldName(col.field) : "Sütun başlığı";
+    header.setAttribute("aria-label", `${i + 1}. sütun başlığı`);
+    header.addEventListener("input", () => {
+      col.header = header.value;
+      markDirty();
+    });
+
+    let second;
+    if (col.kind === "field") {
+      second = el("span", { className: "kind" }, `Alan: ${fieldName(col.field)}`);
+    } else {
+      second = el("input", { type: "text", maxLength: 100, value: col.value, placeholder: "Sabit değer (boş bırakılabilir)" });
+      second.setAttribute("aria-label", `${i + 1}. sütunun sabit değeri`);
+      second.addEventListener("input", () => {
+        col.value = second.value;
+        markDirty();
+      });
+    }
+
+    const toolsBox = el("span", { className: "tools" });
+    const up = el("button", { type: "button", className: "secondary up", disabled: i === 0 }, "↑");
+    up.setAttribute("aria-label", "Yukarı taşı");
+    up.addEventListener("click", () => move(i, -1));
+    const down = el("button", { type: "button", className: "secondary down", disabled: i === template.columns.length - 1 }, "↓");
+    down.setAttribute("aria-label", "Aşağı taşı");
+    down.addEventListener("click", () => move(i, 1));
+    const remove = el("button", { type: "button", className: "secondary", disabled: template.columns.length === 1 }, "×");
+    remove.setAttribute("aria-label", "Sütunu kaldır");
+    remove.addEventListener("click", () => {
+      template.columns.splice(i, 1);
+      renderColumns();
+      markDirty();
+    });
+    toolsBox.append(up, down, remove);
+
+    li.append(header, second, toolsBox);
+    list.append(li);
+  });
+  const full = template.columns.length >= tools.MAX_COLUMNS;
+  $("export-add-field").disabled = full;
+  $("export-add-custom").disabled = full;
+}
+
+function renderPreview() {
+  const table = $("export-preview");
+  table.replaceChildren();
+  const current = tools.normalizeTemplate(template);
+  const sep = current.separator === "tab" ? "\t" : ";";
+  const headRow = el("tr");
+  tools.buildHeader(current).split(sep).forEach((h) => headRow.append(el("th", {}, h)));
+  const dataRow = el("tr");
+  // Preview splits on the separator only for display; quoted CSV cells are shown as-is.
+  tools.buildRow(current, SAMPLE).split(sep).forEach((v) => dataRow.append(el("td", {}, v)));
+  table.append(headRow, dataRow);
+}
+
+function renderAll() {
+  renderColumns();
+  $("export-empty").value = template.empty;
+  $("export-separator").value = template.separator;
+  renderPreview();
+}
+
+async function save() {
+  template = tools.normalizeTemplate(template);
+  await ext.storage.local.set({ [STORAGE_KEYS.exportTemplate]: template });
+  dirty = false;
+  renderAll();
+  setStatus("Şablon kaydedildi.");
+}
+
+async function copyHeader() {
+  try {
+    await navigator.clipboard.writeText(tools.buildHeader(template));
+    setStatus("Başlık satırı kopyalandı. Excel'de ilk satıra yapıştırın.");
+  } catch {
+    setStatus("Kopyalanamadı. Tarayıcı panoya erişime izin vermedi.");
+  }
+}
+
+export async function initExportEditor() {
+  const select = $("export-field");
+  for (const f of tools.FIELD_LIST) select.append(el("option", { value: f.key }, f.header));
+
+  $("export-add-field").addEventListener("click", () => {
+    template.columns.push({ kind: "field", field: select.value });
+    renderColumns();
+    markDirty();
+  });
+  $("export-add-custom").addEventListener("click", () => {
+    template.columns.push({ kind: "custom", header: "Özel sütun", value: "" });
+    renderColumns();
+    markDirty();
+    $("export-columns").lastElementChild?.querySelector("input")?.select();
+  });
+  $("export-empty").addEventListener("change", (e) => {
+    template.empty = e.target.value;
+    markDirty();
+  });
+  $("export-separator").addEventListener("change", (e) => {
+    template.separator = e.target.value;
+    markDirty();
+  });
+  $("export-save").addEventListener("click", () => save().catch(() => setStatus("Kaydedilemedi.")));
+  $("export-copy-header").addEventListener("click", () => copyHeader());
+  $("export-reset").addEventListener("click", () => {
+    template = tools.normalizeTemplate(null);
+    renderAll();
+    markDirty();
+    setStatus("Varsayılan şablon yüklendi. Kalıcı olması için kaydedin.");
+  });
+  window.addEventListener("beforeunload", (e) => {
+    if (dirty) e.preventDefault();
+  });
+
+  const stored = await ext.storage.local.get(STORAGE_KEYS.exportTemplate);
+  template = tools.normalizeTemplate(stored[STORAGE_KEYS.exportTemplate]);
+  renderAll();
+}

@@ -69,8 +69,23 @@ Anahtar yalnızca bu tarayıcıda saklanır, ekranda tekrar gösterilmez ve yaln
 Klavye kısayolu: IP seçiliyken **Alt+Shift+A** (Mac'te **Option+Shift+A**). Kısayolu `chrome://extensions/shortcuts` adresinden değiştirebilirsiniz.
 
 Kartta:
-- **Yenile** sonucu AbuseIPDB'den tekrar alır.
 - **AbuseIPDB'de aç** IP'nin AbuseIPDB sayfasını yeni sekmede açar. Raporların ayrıntısı ve daha eski kayıtlar oradadır.
+- **Excel'e kopyala** sonucu tek satır olarak kopyalar (aşağıya bakın).
+- **↻** sonucu AbuseIPDB'den tekrar alır.
+
+### Excel'e kopyalama
+
+Sorgu sonuçlarını Excel'de kayıt altına alıyorsanız, kartta **Excel'e kopyala**'ya basın ve Excel'de satırın ilk hücresine yapıştırın; her alan kendi sütununa düşer.
+
+Sütunları kendi tablonuza göre ayarlar sayfasındaki **Excel kopyalama şablonu** bölümünden düzenleyin:
+- Alan ekleyip çıkarın, ↑ ↓ ile sıralayın, başlıkları yeniden adlandırın.
+- Tablonuzdaki “Analist”, “Ticket No” gibi sütunlar için **özel sütun** ekleyin. Sabit bir değer (ör. adınız) yazabilir ya da boş bırakabilirsiniz.
+- **Başlık satırını kopyala** ile yeni bir tabloya başlıkları tek seferde yapıştırın.
+- Boş değerlerin nasıl yazılacağını (boş, “Bilinmiyor”, “-”) ve ayırıcıyı (Excel için sekme, CSV için noktalı virgül) seçin.
+
+Kullanılabilen alanlar: sorgu zamanı, IP, abuse skoru, risk seviyesi, rapor sayısı, kaynak sayısı, son rapor, ülke, ülke kodu, ISP, kullanım türü, alan adı, Tor, beyaz liste, rapor dönemi, AbuseIPDB bağlantısı.
+
+Tarihler `16.10.2026 09:41` biçimindedir. `=`, `+`, `-` ya da `@` ile başlayan metinlerin başına Excel'in formül olarak çalıştırmaması için `'` eklenir. Kopyalama tamamen tarayıcınızda yapılır; hiçbir yere veri gönderilmez.
 
 ### Skoru doğru okumak
 
@@ -85,6 +100,7 @@ Kartta:
 | Rapor dönemi | 365 gün | Rapor sayısı ve son rapor tarihi bu dönemi kapsar. AbuseIPDB API en fazla 365 güne izin verir. |
 | Önbellek süresi | 15 dakika | Aynı IP bu süre içinde tekrar sorgulanmaz. Önbellek tarayıcı kapanınca silinir. |
 | Site erişimi | Hiçbiri | Eklentinin çalışacağı siteler. |
+| Excel kopyalama şablonu | 12 sütun | Kopyalanan satırın sütunları ve sırası. |
 
 ## Limitler
 
