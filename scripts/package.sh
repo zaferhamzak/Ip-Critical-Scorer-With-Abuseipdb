@@ -26,6 +26,6 @@ for browser in chromium firefox; do
 done
 
 # Keep a copy of the Chrome package next to the store submission texts.
-rm -f chromium/web-store/2-paket/*.zip
+# Older versions stay: a submitted package must remain available until it is published.
 cp "dist/ip-critical-scorer-chromium-$version.zip" chromium/web-store/2-paket/
 echo "Copied to chromium/web-store/2-paket/"
