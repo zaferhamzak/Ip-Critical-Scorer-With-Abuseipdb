@@ -8,3 +8,4 @@ node_modules/
 AGENTS.md
 CLAUDE.md
 .claude/
+chromium/web-store/2-paket/*/
