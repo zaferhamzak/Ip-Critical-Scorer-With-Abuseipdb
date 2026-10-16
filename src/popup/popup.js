@@ -1,6 +1,5 @@
 import { siteInputToMatchPattern } from "../shared/settings.js";
 import { bindApiKeyForm } from "../ui/api-key-form.js";
-import { RELEASES_PAGE_URL, UPDATE_STATE_KEY, compareVersions } from "../shared/update.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -51,26 +50,8 @@ $("site-enable").addEventListener("click", () => {
     });
 });
 
-async function renderVersion() {
-  const running = chrome.runtime.getManifest().version;
-  const state = (await chrome.storage.local.get(UPDATE_STATE_KEY))[UPDATE_STATE_KEY];
-  const newer = state && compareVersions(state.latestVersion, running) === 1;
-  const status = $("version-status");
-  if (newer) {
-    status.textContent = `v${running} kurulu · v${state.latestVersion} hazır. Otomatik güncelleme kuruluysa birkaç saat içinde kendiliğinden yüklenir.`;
-    $("version-link").href = state.url || RELEASES_PAGE_URL;
-    $("version-link-wrap").hidden = false;
-  } else {
-    const checked = state?.checkedAt
-      ? ` · son kontrol ${new Intl.DateTimeFormat("tr-TR", { dateStyle: "short", timeStyle: "short" }).format(new Date(state.checkedAt))}`
-      : "";
-    status.textContent = `v${running} · güncel${checked}`;
-  }
-}
-
-renderVersion().catch(() => {
-  $("version-status").textContent = `v${chrome.runtime.getManifest().version}`;
-});
+// Updates are delivered by the Chrome Web Store; just show what is running.
+$("version-status").textContent = `v${chrome.runtime.getManifest().version} · Chrome Web Store tarafından otomatik güncellenir`;
 
 $("open-options").addEventListener("click", () => chrome.runtime.openOptionsPage());
 

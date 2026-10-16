@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "AbuseIPDB IP Lookup",
-  "version": "0.3.0",
-  "description": "Seçilen IP adresini isteğe bağlı olarak AbuseIPDB'de sorgular ve sonucu sayfada küçük bir kartta gösterir.",
+  "name": "IP Critical Scorer",
+  "short_name": "IP Scorer",
+  "version": "0.4.0",
+  "description": "Sayfada seçtiğiniz IP adresinin AbuseIPDB itibar skorunu aynı sayfada küçük bir kartta gösterir.",
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
@@ -13,12 +14,10 @@
   "permissions": [
     "storage",
     "scripting",
-    "activeTab",
-    "alarms"
+    "activeTab"
   ],
   "host_permissions": [
-    "https://api.abuseipdb.com/*",
-    "https://api.github.com/*"
+    "https://api.abuseipdb.com/*"
   ],
   "optional_host_permissions": [
     "https://*/*",
@@ -29,7 +28,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "AbuseIPDB IP Lookup",
+    "default_title": "IP Critical Scorer",
     "default_popup": "src/popup/popup.html",
     "default_icon": {
       "16": "icons/icon-16.png",

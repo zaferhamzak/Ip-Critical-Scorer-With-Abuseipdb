@@ -4,7 +4,6 @@
 
 import { pagePatternsFromGranted } from "../shared/settings.js";
 import { createLookupService } from "./lookup-service.js";
-import { UPDATE_STATE_KEY, checkLatestRelease, compareVersions } from "../shared/update.js";
 
 const CONTENT_SCRIPT_ID = "ip-selector";
 const MAX_MESSAGE_IP_LENGTH = 100;
@@ -100,69 +99,9 @@ chrome.commands.onCommand.addListener(async (command) => {
   });
 });
 
-// ---------- updates ----------
-// 1. Every few minutes, compare the manifest on disk with the running version. The
-//    external updater script replaces the files (manifest last); when the versions
-//    differ, reload so the new code takes effect without user action.
-// 2. Twice a day, ask GitHub for the latest release and show a badge if it is newer.
-
-const LOCAL_CHECK_ALARM = "local-files-check";
-const RELEASE_CHECK_ALARM = "release-check";
-
-async function reloadIfFilesChanged() {
-  try {
-    const response = await fetch(chrome.runtime.getURL("manifest.json"), { cache: "no-store" });
-    const onDisk = await response.json();
-    const running = chrome.runtime.getManifest().version;
-    if (compareVersions(onDisk.version, running) === 1) chrome.runtime.reload();
-  } catch {
-    // Files mid-replacement or unreadable; try again on the next alarm.
-  }
-}
-
-async function applyBadge(state) {
-  const running = chrome.runtime.getManifest().version;
-  const newer = state && compareVersions(state.latestVersion, running) === 1;
-  await chrome.action.setBadgeText({ text: newer ? "NEW" : "" });
-  if (newer) await chrome.action.setBadgeBackgroundColor({ color: "#EF4444" });
-}
-
-async function runReleaseCheck() {
-  const result = await checkLatestRelease({
-    fetchFn: (url, init) => fetch(url, init),
-    currentVersion: chrome.runtime.getManifest().version,
-  });
-  if (result) await chrome.storage.local.set({ [UPDATE_STATE_KEY]: result });
-  const stored = (await chrome.storage.local.get(UPDATE_STATE_KEY))[UPDATE_STATE_KEY];
-  await applyBadge(stored);
-}
-
-async function ensureAlarms() {
-  if (!(await chrome.alarms.get(LOCAL_CHECK_ALARM))) {
-    await chrome.alarms.create(LOCAL_CHECK_ALARM, { periodInMinutes: 5 });
-  }
-  if (!(await chrome.alarms.get(RELEASE_CHECK_ALARM))) {
-    await chrome.alarms.create(RELEASE_CHECK_ALARM, { delayInMinutes: 1, periodInMinutes: 720 });
-  }
-}
-
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === LOCAL_CHECK_ALARM) reloadIfFilesChanged();
-  if (alarm.name === RELEASE_CHECK_ALARM) runReleaseCheck().catch(() => {});
-});
-
-function onBrowserOrExtensionStart() {
-  syncSafely();
-  ensureAlarms().catch((error) => console.error("alarm setup failed", error));
-  chrome.storage.local
-    .get(UPDATE_STATE_KEY)
-    .then((stored) => applyBadge(stored[UPDATE_STATE_KEY]))
-    .catch(() => {});
-}
-
 restrictStorageAccess();
 
-chrome.runtime.onInstalled.addListener(onBrowserOrExtensionStart);
-chrome.runtime.onStartup.addListener(onBrowserOrExtensionStart);
+chrome.runtime.onInstalled.addListener(syncSafely);
+chrome.runtime.onStartup.addListener(syncSafely);
 chrome.permissions.onAdded.addListener(syncSafely);
 chrome.permissions.onRemoved.addListener(syncSafely);

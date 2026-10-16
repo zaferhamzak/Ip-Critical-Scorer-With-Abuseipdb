@@ -1,8 +1,10 @@
-# AbuseIPDB IP Lookup
+# IP Critical Scorer
 
-Sayfada seçtiğiniz IP adresini AbuseIPDB'de sorgulayıp sonucu aynı sayfada küçük bir kartta gösteren Chrome eklentisi. SOC analistlerinin log, SIEM ve ticket ekranlarında sekme değiştirmeden IP itibarına bakması için yapıldı.
+Sayfada seçtiğiniz IP adresinin AbuseIPDB itibar skorunu aynı sayfada küçük bir kartta gösteren Chrome eklentisi. SOC analistlerinin log, SIEM ve ticket ekranlarında sekme değiştirmeden IP itibarına bakması için yapıldı.
 
 > Bu eklenti AbuseIPDB'nin resmi ürünü değildir ve AbuseIPDB ile bağlantısı yoktur. Veriler AbuseIPDB'nin herkese açık APIv2'sinden, sizin API anahtarınızla alınır.
+
+![Sonuç kartı](store-assets/screenshot-2-card.png)
 
 ## Ne yapar
 
@@ -14,22 +16,20 @@ Sayfada seçtiğiniz IP adresini AbuseIPDB'de sorgulayıp sonucu aynı sayfada k
 
 ## Kurulum
 
-Eklenti Chrome Web Store'da değil; GitHub'dan indirilip elle yüklenir.
+Eklenti Chrome Web Store üzerinden dağıtılır ve Chrome tarafından otomatik güncellenir.
 
-1. [Releases sayfasından](https://github.com/zaferhamzak/Ip-Critical-Scorer-With-Abuseipdb/releases/latest) en son `abuseipdb-ip-lookup-<sürüm>.zip` dosyasını indirin.
-2. ZIP'i kalıcı bir yere açın, örneğin `Belgeler/chrome-eklentileri/`. İçinden `abuseipdb-ip-lookup` klasörü çıkar.
-   **Bu klasörü sonradan taşımayın ya da silmeyin.** Chrome eklentiyi bu klasörden çalıştırır.
-3. Chrome'da adres çubuğuna `chrome://extensions` yazın.
-4. Sağ üstteki **Geliştirici modu** anahtarını açın.
-5. **Paketlenmemiş öğe yükle** butonuna basın ve 2. adımdaki `abuseipdb-ip-lookup` klasörünü seçin.
-6. Araç çubuğundaki yapboz simgesinden eklentiyi sabitleyin, böylece **IP** simgesi her zaman görünür.
-7. **Otomatik güncellemeyi açın** (macOS ve Linux, bir kez yapılır). Terminal'de şunu çalıştırın; yolu 2. adımdaki klasöre göre düzeltin:
+1. Chrome Web Store sayfasını açın (bağlantı mağaza onayından sonra eklenecek).
+2. **Chrome'a ekle**'ye basın.
+3. Araç çubuğundaki yapboz simgesinden eklentiyi sabitleyin, böylece **IP** simgesi her zaman görünür.
 
-   ```sh
-   sh ~/Belgeler/chrome-eklentileri/abuseipdb-ip-lookup/updater/install-auto-update.sh
-   ```
+### Kurumsal ortam (BT ekibi için)
 
-   Ayrıntılar aşağıdaki **Güncelleme** bölümünde.
+Şirket Chrome'u eklentileri politika ile sınırlıyorsa BT ekibi eklentinin kimliğini (ID) izin listesine ekler. ID, mağaza sayfasının adresinin sonundaki 32 karakterlik değerdir.
+
+- **Yalnızca izin vermek:** `ExtensionInstallAllowlist` listesine `<eklenti-id>` eklenir.
+- **Herkese zorunlu kurmak:** `ExtensionInstallForcelist` listesine `<eklenti-id>;https://clients2.google.com/service/update2/crx` eklenir.
+
+Politikalar Intune, Group Policy, Jamf ya da Google Admin konsolundan dağıtılabilir. Kurulum ve güncelleme Chrome'un kendisi tarafından yapılır; bilgisayarda ek betik ya da arka plan görevi çalışmaz.
 
 ## İlk ayarlar
 
@@ -88,43 +88,13 @@ Kartta:
 - Özel adresleri ve geçersiz seçimleri hiç göndermez.
 - Limit dolduğunda (HTTP 429) AbuseIPDB'nin bildirdiği süre boyunca istek atmaz ve kartta ne zaman tekrar denenebileceğini gösterir.
 
-## Güncelleme
-
-### Otomatik (macOS ve Linux)
-
-Kurulumun 7. adımındaki komutu bir kez çalıştırdıysanız güncellemeler kendiliğinden gelir:
-
-1. Bilgisayarınızdaki küçük bir betik oturum açılışında ve 6 saatte bir GitHub'daki son sürüme bakar. macOS'ta bunu bir LaunchAgent, Linux'ta crontab çalıştırır.
-2. Yeni sürüm varsa ZIP'i yalnızca bu deponun Releases bölümünden indirir, sürümünü doğrular ve eklenti klasörüne yazar.
-3. Eklenti en geç 5 dakika içinde dosyalarının değiştiğini fark eder ve kendini yeniden yükler. Ayarlarınız ve API anahtarınız korunur.
-
-Güncelleme sırasında açık olan sekmelerde kart "Eklenti yeniden yüklenmiş" diyebilir; o sayfayı yenilemeniz yeterli.
-
-- Kayıtlar: macOS'ta `~/Library/Logs/ip-critical-scorer-update.log`, Linux'ta `~/.local/share/ip-critical-scorer/update.log`.
-- Kaldırmak için: `sh <eklenti klasörü>/updater/uninstall-auto-update.sh`
-
-Eklenti klasörünü taşırsanız kurulum komutunu yeni konumdan tekrar çalıştırın.
-
-### Elle (Windows ve otomatik güncelleme kurmayanlar)
-
-Yeni sürüm çıktığında araç çubuğundaki simgede kırmızı **NEW** rozeti görünür; popup'ta indirme bağlantısı vardır.
-
-1. Yeni ZIP'i indirin.
-2. Eski `abuseipdb-ip-lookup` klasörünün içeriğini yeni ZIP'ten çıkan dosyalarla **aynı konumda** değiştirin.
-3. `chrome://extensions` sayfasında eklentinin kartındaki **↻** butonuna basın.
-
-Klasör aynı yerde kalırsa API anahtarınız ve ayarlarınız korunur. Klasörün yeri değişirse Chrome onu yeni bir eklenti sayar; anahtarı ve site izinlerini yeniden girmeniz gerekir.
-
-### Güvenlik notu
-
-Otomatik güncelleme, bu GitHub deposunda yayınlanan her sürümü güvenilir kabul eder. Depo sahibinin GitHub hesabı iki adımlı doğrulama ile korunmalıdır. Kontrollü ortamlarda otomatik güncellemeyi kurmayıp sürümleri inceledikten sonra elle güncelleyebilirsiniz.
-
 ## Gizlilik
+
+Ayrıntılı metin: [PRIVACY.md](PRIVACY.md)
 
 - Yalnızca seçilen ve doğrulanan IP adresi ile API anahtarınız `api.abuseipdb.com` adresine gönderilir.
 - Sayfanın adresi, içeriği, log metni ya da çerezler hiçbir yere gönderilmez.
-- Güncelleme kontrolü için eklenti günde iki kez `api.github.com` adresinden son sürüm bilgisini okur. Bu istekte sizinle ilgili hiçbir veri gönderilmez.
-- Telemetri ya da analiz yoktur.
+- Telemetri ya da analiz yoktur; geliştiriciye hiçbir veri gitmez.
 - API anahtarı Chrome'un yerel depolamasında tutulur. Eklentinin sayfalara eklenen kendi bileşeni bile anahtarı okuyamaz; anahtarı yalnızca arka plan servisi kullanır.
 
 ## İzinler ve gerekçeleri
@@ -134,17 +104,14 @@ Otomatik güncelleme, bu GitHub deposunda yayınlanan her sürümü güvenilir k
 | `storage` | Ayarları, API anahtarını ve önbelleği saklamak |
 | `scripting` | Seçim butonunu yalnızca izin verilen sitelere eklemek |
 | `activeTab` | Simgeye tıklandığında o sitenin etkin olup olmadığını göstermek |
-| `alarms` | Güncelleme kontrollerini zamanlamak |
 | `api.abuseipdb.com` | Sorgu isteğini göndermek |
-| `api.github.com` | Yeni sürüm olup olmadığına bakmak |
 | Site izinleri (isteğe bağlı) | Yalnızca sizin seçtiğiniz sitelerde çalışmak |
 
 ## Sorun giderme
 
 - **Buton çıkmıyor:** Simgeye tıklayıp sitenin etkin olduğunu kontrol edin ve sayfayı yenileyin. IP bir iframe (sayfa içine gömülü başka sayfa) içindeyse eklenti şu an orada çalışmaz.
-- **"Eklenti yeniden yüklenmiş" mesajı:** Eklentiyi güncellediyseniz ya da yeniden yüklediyseniz açık sayfayı yenileyin.
+- **"Eklenti yeniden yüklenmiş" mesajı:** Eklenti güncellendiğinde açık sayfalarda görülebilir; sayfayı yenileyin.
 - **401 hatası:** API anahtarı yanlış ya da iptal edilmiş. Simgeden yeni anahtar girin.
-- **Chrome "Geliştirici modu uzantılarını devre dışı bırak" uyarısı:** Elle yüklenen eklentiler için gösterilebilir; **İptal** diyerek eklentiyi açık tutabilirsiniz.
 
 ## Geliştirme
 
@@ -152,8 +119,10 @@ Gereksinim: Node.js 20 veya üstü. Ek bağımlılık yoktur.
 
 ```sh
 npm test          # birim testleri
-npm run package   # testleri çalıştırır, dist/ altına ZIP üretir
+npm run package   # testleri çalıştırır, dist/ altına Web Store ZIP'i üretir
 ```
+
+Geliştirirken: `chrome://extensions` → **Geliştirici modu** → **Paketlenmemiş öğe yükle** → depo klasörü. Değişiklikten sonra eklentiyi ↻ ile yenileyin.
 
 Klasör yapısı:
 
@@ -164,15 +133,14 @@ src/content/      seçim butonu ve sonuç kartı
 src/shared/       IP doğrulama, AbuseIPDB API adaptörü, ayarlar
 src/popup/        araç çubuğu penceresi
 src/options/      ayarlar sayfası
-updater/          otomatik güncelleme betikleri (macOS/Linux)
 icons/            PNG ikonlar (source/ altında SVG kaynakları)
+store-assets/     mağaza ekran görüntüleri ve başvuru metinleri
 tests/            birim testleri ve sentetik test verisi
 ```
-
-Geliştirirken depoyu doğrudan **Paketlenmemiş öğe yükle** ile yükleyebilir, değişiklikten sonra eklentiyi ↻ ile yenileyebilirsiniz.
 
 ### Yeni sürüm yayınlama
 
 1. `manifest.json` içindeki `version` değerini artırın.
 2. `npm run package` çalıştırın.
-3. GitHub'da `v<sürüm>` etiketiyle (ör. `v0.4.0`) yeni bir Release oluşturup `dist/` altındaki ZIP'i ekleyin. Etiket, `manifest.json` sürümüyle aynı olmalıdır; güncelleme betiği uyuşmayan paketi reddeder.
+3. Chrome Web Store Developer Dashboard'da eklentiyi açıp **Package** sekmesinden yeni ZIP'i yükleyin ve incelemeye gönderin.
+4. Onaydan sonra Chrome, kullanıcılardaki eklentiyi kendiliğinden günceller.

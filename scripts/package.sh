@@ -1,14 +1,13 @@
 #!/bin/sh
-# Builds dist/abuseipdb-ip-lookup-<version>.zip containing only the files Chrome needs.
-# The archive has a single top-level folder so it extracts cleanly for "Load unpacked".
+# Builds dist/ip-critical-scorer-<version>.zip for the Chrome Web Store.
+# manifest.json sits at the root of the archive, as the store requires.
 set -eu
 
 cd "$(dirname "$0")/.."
 
 version=$(node -p 'require("./manifest.json").version')
-name="abuseipdb-ip-lookup"
-stage="dist/$name"
-archive="dist/$name-$version.zip"
+stage="dist/stage"
+archive="dist/ip-critical-scorer-$version.zip"
 
 npm test --silent
 
@@ -17,11 +16,8 @@ mkdir -p "$stage/icons"
 cp manifest.json "$stage/"
 cp -R src "$stage/"
 cp icons/*.png "$stage/icons/"
-cp README.md "$stage/"
-mkdir -p "$stage/updater"
-cp updater/*.sh "$stage/updater/"
 
-(cd dist && zip -qrX "$(basename "$archive")" "$name")
+(cd "$stage" && zip -qrX "../$(basename "$archive")" .)
 rm -rf "$stage"
 
 echo "Created $archive"

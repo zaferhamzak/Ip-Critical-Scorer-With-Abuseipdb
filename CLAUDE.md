@@ -6,7 +6,7 @@ Bu projede ortak ve bağlayıcı geliştirme rehberi aynı klasördeki `AGENTS.m
 Chrome için Manifest V3 eklentisi: kullanıcı mouse ile IP seçer, “IP’yi sorgula” butonuna basar ve sonuç aynı sayfada küçük bir kartta gösterilir. Public sayfa okunmaz (Cloudflare engeli ve Kullanım Şartları; ayrıntı `AGENTS.md`). API anahtarı isteğe bağlıdır: yoksa kart detay bağlantısı gösterir, varsa resmi APIv2 kullanılır. Seçim otomatik sorgu başlatmaz.
 
 ## Mevcut durum
-Aşama 1–4 uygulandı (ayrıntı `AGENTS.md`). Testler `npm test`, dağıtım paketi `npm run package` (dist/ altına ZIP). Dağıtım GitHub Releases ile.
+Aşama 1–4 uygulandı (ayrıntı `AGENTS.md`). Eklenti adı “IP Critical Scorer”. Testler `npm test`, Web Store paketi `npm run package` (dist/ altına ZIP). Dağıtım Chrome Web Store ile; bilgisayara güncelleme betiği eklenmez (kurumsal EDR).
 
 ## Uygulama disiplini
 - Önce mevcut dosyaları incele, ardından `AGENTS.md` içindeki aşamalar üzerinden ilerle.

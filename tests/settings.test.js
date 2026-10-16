@@ -2,7 +2,6 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   API_ORIGIN_PATTERN,
-  UPDATE_ORIGIN_PATTERN,
   mergeSettings,
   normalizeApiKey,
   normalizeCacheTtl,
@@ -64,7 +63,7 @@ test("siteInputToMatchPattern rejects unsafe or ambiguous input", () => {
 
 test("pagePatternsFromGranted excludes the API origin and dedupes", () => {
   assert.deepEqual(
-    pagePatternsFromGranted([API_ORIGIN_PATTERN, UPDATE_ORIGIN_PATTERN, "https://b.example/*", "https://a.example/*", "https://a.example/*"]),
+    pagePatternsFromGranted([API_ORIGIN_PATTERN, "https://b.example/*", "https://a.example/*", "https://a.example/*"]),
     ["https://a.example/*", "https://b.example/*"],
   );
   assert.deepEqual(pagePatternsFromGranted(undefined), []);

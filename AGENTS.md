@@ -2,7 +2,7 @@
 
 ## Amaç ve mevcut durum
 SOC analistinin tarayıcıda mouse ile seçtiği IP adresini AbuseIPDB üzerinden sorgulayıp sonucu bulunduğu sayfada görmesini sağlayan Chrome eklentisi.
-Aşama 1–4 uygulandı: sorgu, önbellek, kart, popup ve ayarlar, ikonlar, README ve `npm run package` ile ZIP paketleme. Dağıtım GitHub Releases üzerinden ZIP + “Paketlenmemiş öğe yükle” ile yapılır; Chrome Web Store kullanılmıyor. Paketlenmemiş eklenti kendi dosyalarını değiştiremez; otomatik güncellemeyi `updater/update.sh` (macOS LaunchAgent / Linux crontab) yapar: yalnızca sabit repodaki release ZIP'ini indirir, tag ile manifest sürümünü eşleştirir, manifest'i en son yazar. Eklenti 5 dakikada bir diskteki manifest sürümünü okuyup farklıysa `chrome.runtime.reload()` çağırır; 12 saatte bir GitHub API ile yeni sürüm kontrolü yapıp rozet gösterir. Tarayıcıda otomatik uçtan uca test yok; kurulu Chrome sürümü komut satırından eklenti yüklemeyi engelliyor.
+Aşama 1–4 uygulandı: sorgu, önbellek, kart, popup ve ayarlar, ikonlar, README ve `npm run package` ile ZIP paketleme. Dağıtım Chrome Web Store (liste dışı) üzerinden yapılır; güncellemeyi Chrome kendisi yapar. Kurumsal ortamda EDR alarmı ürettiği için bilgisayara betik, LaunchAgent, cron ya da kendi kendini güncelleme mekanizması eklenmez. Mağaza metinleri `store-assets/listing.md`, gizlilik politikası `PRIVACY.md`. Tarayıcıda otomatik uçtan uca test yok; kurulu Chrome sürümü komut satırından eklenti yüklemeyi engelliyor.
 
 ## İlk sürüm kapsamı
 - Kullanıcı geçerli bir IP seçtiğinde yanında “IP’yi sorgula” butonu göster.

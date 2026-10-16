@@ -1,9 +1,8 @@
 // Pure settings helpers. No chrome.* usage here so the module is unit-testable in Node.
 
 export const API_ORIGIN_PATTERN = "https://api.abuseipdb.com/*";
-export const UPDATE_ORIGIN_PATTERN = "https://api.github.com/*";
-// Data sources the extension talks to; never treated as pages to inject into.
-const DATA_ORIGIN_PATTERNS = new Set([API_ORIGIN_PATTERN, UPDATE_ORIGIN_PATTERN]);
+// Data source the extension talks to; never treated as a page to inject into.
+const DATA_ORIGIN_PATTERNS = new Set([API_ORIGIN_PATTERN]);
 export const ALL_SITES_PATTERNS = ["https://*/*", "http://*/*"];
 
 export const CACHE_TTL_MIN_MINUTES = 1;
@@ -100,7 +99,7 @@ export function siteInputToMatchPattern(input) {
 
 /**
  * Splits granted host permissions into page patterns (where the content script may run).
- * The AbuseIPDB and GitHub API origins are data sources, not pages the user browses for IPs.
+ * The AbuseIPDB API origin is a data source, not a page the user browses for IPs.
  */
 export function pagePatternsFromGranted(origins) {
   if (!Array.isArray(origins)) return [];
