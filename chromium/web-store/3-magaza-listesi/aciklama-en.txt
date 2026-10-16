@@ -1,0 +1,28 @@
+IP Critical Scorer helps SOC analysts check IP reputation on log, SIEM and ticket screens without switching tabs.
+
+How it works
+• Select an IP address on a page; an “IP’yi sorgula” (look up IP) button appears next to it.
+• Press the button and the AbuseIPDB result appears in a small card on the same page.
+• Selecting text never sends a request; a lookup happens only when you press the button.
+
+The card shows
+• Abuse confidence score (0–100) and risk level
+• Number of reports in the last year and how many distinct sources reported it
+• Last report date, country, ISP, usage type, domain
+• Tor and whitelist status
+• A link to the AbuseIPDB details page
+
+Features
+• IPv4 and IPv6, including notations such as 8.8.8[.]8 and 8.8.8.8:443
+• Private and local addresses (10.x, 192.168.x, 127.x, fe80:: and others) are never sent; the card explains the address type instead
+• Caching and respect for AbuseIPDB rate limits
+• Runs only on sites you enable
+• Light and dark theme, keyboard shortcut (Alt+Shift+A)
+
+Requirement
+Scores and report details need an API key from a free AbuseIPDB account (1,000 lookups per day). Without a key, the card links to the AbuseIPDB details page.
+
+Privacy
+Only the IP address you select and your API key are sent, to api.abuseipdb.com. Page URLs, page content and cookies are never sent. No telemetry.
+
+This extension is not an official AbuseIPDB product and is not affiliated with AbuseIPDB.

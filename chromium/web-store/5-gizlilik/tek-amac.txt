@@ -1,0 +1,1 @@
+Kullanıcının bir web sayfasında seçtiği IP adresinin AbuseIPDB itibar bilgisini, kullanıcı butona bastığında aynı sayfada küçük bir kartta gösterir.

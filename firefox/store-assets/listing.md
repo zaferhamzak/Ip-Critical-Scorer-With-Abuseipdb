@@ -15,7 +15,7 @@ addons.mozilla.org Developer Hub'daki alanlara kopyalanacak metinler. AMO'da gel
 **Summary (en fazla 250 karakter):**
 Sayfada seçtiğiniz IP adresinin AbuseIPDB itibar skorunu aynı sayfada küçük bir kartta gösterir. SOC analistleri için: seçim tek başına istek göndermez, özel adresler dışarı gönderilmez.
 
-**Description:** `chromium/store-assets/listing.md` dosyasındaki açıklama metninin aynısı kullanılabilir. Son satırdaki "resmi ürünü değildir" notunu koruyun.
+**Description:** `chromium/web-store/3-magaza-listesi/aciklama-tr.txt` metninin aynısı kullanılabilir. Son satırdaki "resmi ürünü değildir" notunu koruyun.
 
 **Categories:** Privacy & Security
 
@@ -25,7 +25,7 @@ Sayfada seçtiğiniz IP adresinin AbuseIPDB itibar skorunu aynı sayfada küçü
 
 **License:** AMO bir lisans seçmenizi ister. Henüz karar verilmedi.
 
-**Screenshots:** `chromium/store-assets/screenshot-1-button.png`, `chromium/store-assets/screenshot-2-card.png` (örnek veri).
+**Screenshots:** `chromium/web-store/4-gorseller/` altındaki `screenshot-*.png` dosyaları (örnek veri).
 
 ## Veri toplama beyanı
 

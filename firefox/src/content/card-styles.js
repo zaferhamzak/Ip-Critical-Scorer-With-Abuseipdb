@@ -75,7 +75,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--focus); outline
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.18);
+  /* Light ring keeps the dark button visible on dark SIEM/log pages. */
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.55), 0 4px 14px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
   animation: pop 120ms ease-out;
 }
 .lookup-button:hover { filter: brightness(1.15); }

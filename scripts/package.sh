@@ -24,3 +24,8 @@ for browser in chromium firefox; do
   rm -rf "$stage"
   echo "Created $archive"
 done
+
+# Keep a copy of the Chrome package next to the store submission texts.
+rm -f chromium/web-store/2-paket/*.zip
+cp "dist/ip-critical-scorer-chromium-$version.zip" chromium/web-store/2-paket/
+echo "Copied to chromium/web-store/2-paket/"

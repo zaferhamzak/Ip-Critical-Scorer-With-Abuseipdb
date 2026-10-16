@@ -1,4 +1,5 @@
 dist/
+chromium/web-store/2-paket/*.zip
 node_modules/
 .DS_Store
 

@@ -1,0 +1,3 @@
+Seçim: No, I am not using remote code.
+
+Eklentinin tüm JavaScript kodu paketin içindedir. Uzak sunucudan script yüklenmez, eval kullanılmaz. AbuseIPDB'den gelen yanıt yalnızca veri (JSON) olarak işlenir ve sayfaya textContent ile yazılır.

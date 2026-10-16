@@ -1,0 +1,10 @@
+How to test IP Critical Scorer:
+
+1. Open any https page that contains an IP address. Click the toolbar icon and press "Bu sitede etkinleştir" (enable on this site), grant the permission, then reload the page.
+2. Select an IP address on the page; a "IP’yi sorgula" (look up IP) button appears next to the selection. Press it.
+3. Without an API key the card says no key is set and links to the AbuseIPDB page for that IP. No request is made.
+4. To see scores: create a free account at abuseipdb.com, generate an API key (Account > API), paste it into the toolbar popup and press "Kaydet" (save). Select an IP again and press the button; the card shows the abuse confidence score and report details.
+5. Selecting a private address such as 192.168.1.1 shows a local explanation and sends no request.
+6. Close the card with Esc, the × button or a click outside it.
+
+Network: the only remote endpoint is https://api.abuseipdb.com/api/v2/check, called from the service worker when the user presses the button. No remote code, no telemetry, no data sent to the developer.

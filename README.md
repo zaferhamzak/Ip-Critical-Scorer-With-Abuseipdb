@@ -4,7 +4,7 @@ Sayfada seçtiğiniz IP adresinin AbuseIPDB itibar skorunu aynı sayfada küçü
 
 > Bu eklenti AbuseIPDB'nin resmi ürünü değildir ve AbuseIPDB ile bağlantısı yoktur. Veriler AbuseIPDB'nin herkese açık APIv2'sinden, sizin API anahtarınızla alınır.
 
-![Sonuç kartı](chromium/store-assets/screenshot-2-card.png)
+![Sonuç kartı](chromium/web-store/4-gorseller/screenshot-2-sonuc-karti.png)
 
 ## Ne yapar
 
@@ -138,7 +138,7 @@ chromium/                 Chrome, Edge, Brave paketi
   manifest.json           service worker arka planı
   src/                    kaynak kodun asıl yeri
   icons/
-  store-assets/           Chrome Web Store metinleri ve ekran görüntüleri
+  web-store/              Chrome Web Store başvurusunun tüm alanları ve görselleri
 firefox/                  Firefox paketi
   manifest.json           event page arka planı, gecko kimliği, veri beyanı
   src/, icons/            chromium/'dan kopyalanır, elle düzenlenmez
