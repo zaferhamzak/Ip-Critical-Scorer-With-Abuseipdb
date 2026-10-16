@@ -6,6 +6,7 @@ import {
   mergeSettings,
   normalizeCacheTtl,
   normalizeMaxAge,
+  normalizeHistoryDays,
   pagePatternsFromGranted,
   siteInputToMatchPattern,
 } from "../shared/settings.js";
@@ -21,8 +22,12 @@ function showMessage(text, kind = "ok") {
 }
 
 async function renderSettings() {
-  const stored = await ext.storage.local.get([STORAGE_KEYS.cacheTtlMinutes, STORAGE_KEYS.maxAgeInDays]);
+  const stored = await ext.storage.local.get([
+    STORAGE_KEYS.cacheTtlMinutes, STORAGE_KEYS.maxAgeInDays, STORAGE_KEYS.historyEnabled, STORAGE_KEYS.historyDays,
+  ]);
   const settings = mergeSettings(stored);
+  $("history-enabled").checked = settings.historyEnabled;
+  $("history-days").value = String(settings.historyDays);
   $("cache-ttl").value = String(settings.cacheTtlMinutes);
   $("max-age").value = String(settings.maxAgeInDays);
 }
@@ -71,6 +76,18 @@ async function saveMaxAge(event) {
   }
   await ext.storage.local.set({ [STORAGE_KEYS.maxAgeInDays]: days });
   showMessage(`Rapor dönemi ${days} gün olarak kaydedildi.`);
+}
+
+async function saveHistorySettings(event) {
+  event.preventDefault();
+  const days = normalizeHistoryDays($("history-days").value);
+  if (days === null) {
+    showMessage("Saklama süresi 1 ile 90 gün arasında tam sayı olmalı.", "error");
+    return;
+  }
+  const enabled = $("history-enabled").checked;
+  await ext.storage.local.set({ [STORAGE_KEYS.historyEnabled]: enabled, [STORAGE_KEYS.historyDays]: days });
+  showMessage(enabled ? `Geçmiş ${days} gün saklanacak.` : "Geçmiş kaydı kapatıldı. Mevcut kayıtları geçmiş sayfasından silebilirsiniz.");
 }
 
 async function clearCache() {
@@ -125,6 +142,8 @@ bindApiKeyForm({
 }).catch((error) => console.error(error));
 
 $("period-form").addEventListener("submit", guard(saveMaxAge));
+$("history-form").addEventListener("submit", guard(saveHistorySettings));
+$("history-open").addEventListener("click", () => ext.tabs.create({ url: ext.runtime.getURL("src/history/history.html") }));
 $("cache-form").addEventListener("submit", guard(saveCacheTtl));
 $("cache-clear").addEventListener("click", guard(clearCache));
 $("site-form").addEventListener("submit", guard(addSite));

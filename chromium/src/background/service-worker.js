@@ -4,7 +4,8 @@
 
 import { ext } from "../shared/ext.js";
 import "../shared/export.js";
-import { STORAGE_KEYS, normalizeQuickNotes, pagePatternsFromGranted } from "../shared/settings.js";
+import { STORAGE_KEYS, mergeSettings, normalizeNote, normalizeQuickNotes, pagePatternsFromGranted } from "../shared/settings.js";
+import { addEntry, entryFromResult, pruneHistory, removeEntries, setNote } from "../shared/history.js";
 import { createLookupService } from "./lookup-service.js";
 
 const CONTENT_SCRIPT_ID = "ip-selector";
@@ -59,6 +60,35 @@ function syncSafely() {
   syncContentScripts().catch((error) => console.error("content script sync failed", error));
 }
 
+// History writes are serialised: bulk lookups finish in parallel and would otherwise
+// overwrite each other's read-modify-write.
+let historyQueue = Promise.resolve();
+function updateHistory(mutate, { evenIfDisabled = false } = {}) {
+  historyQueue = historyQueue
+    .then(async () => {
+      const keys = [STORAGE_KEYS.history, STORAGE_KEYS.historyEnabled, STORAGE_KEYS.historyDays];
+      const stored = await ext.storage.local.get(keys);
+      const settings = mergeSettings(stored);
+      if (!settings.historyEnabled && !evenIfDisabled) return;
+      const now = Date.now();
+      const next = mutate(pruneHistory(stored[STORAGE_KEYS.history], settings.historyDays, now), settings.historyDays, now);
+      await ext.storage.local.set({ [STORAGE_KEYS.history]: next });
+    })
+    .catch((error) => console.error("history update failed", error));
+  return historyQueue;
+}
+
+function canonicalIps(value) {
+  if (!Array.isArray(value) || value.length > 100) return null;
+  const ips = [];
+  for (const raw of value) {
+    const parsed = typeof raw === "string" && raw.length <= MAX_MESSAGE_IP_LENGTH ? globalThis.IpTools.parseIp(raw) : null;
+    if (!parsed) return null;
+    ips.push(parsed.ip);
+  }
+  return ips;
+}
+
 function isValidLookupMessage(message) {
   return (
     typeof message.ip === "string" &&
@@ -80,7 +110,12 @@ ext.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       lookupService
         .lookup({ ip: message.ip, refresh: message.refresh === true })
-        .then(sendResponse, (error) => {
+        .then((response) => {
+          if (response?.status === "ok") {
+            updateHistory((list, days, now) => addEntry(list, entryFromResult(response, now), days, now));
+          }
+          sendResponse(response);
+        }, (error) => {
           console.error("lookup failed", error);
           sendResponse({ status: "error", code: "internal" });
         });
@@ -97,6 +132,22 @@ ext.runtime.onMessage.addListener((message, sender, sendResponse) => {
         )
         .catch(() => sendResponse({ template: globalThis.ExportTools.normalizeTemplate(null), quickNotes: normalizeQuickNotes(null) }));
       return true;
+    case "setHistoryNote": {
+      const ips = canonicalIps(message.ips);
+      if (!ips || typeof message.note !== "string") return false;
+      const note = normalizeNote(message.note);
+      updateHistory((list) => setNote(list, ips, note), { evenIfDisabled: true }).then(() => sendResponse({ ok: true }));
+      return true;
+    }
+    case "removeHistory": {
+      const ips = message.all === true ? null : canonicalIps(message.ips);
+      if (message.all !== true && !ips) return false;
+      updateHistory((list) => (ips ? removeEntries(list, ips) : []), { evenIfDisabled: true }).then(() => sendResponse({ ok: true }));
+      return true;
+    }
+    case "openHistory":
+      ext.tabs.create({ url: ext.runtime.getURL("src/history/history.html") });
+      return false;
     case "openOptions":
       ext.runtime.openOptionsPage();
       return false;

@@ -432,9 +432,15 @@
     return box;
   }
 
+  function saveNoteToHistory(ips, note) {
+    if (note) sendMessage({ type: "setHistoryNote", ips, note }).catch(() => {});
+  }
+
   async function copyForExcel(button, response) {
     const { template } = await getExportSettings();
-    const ok = await copyText(globalThis.ExportTools.buildRow(template, { ...response, note: currentNote() }));
+    const note = currentNote();
+    const ok = await copyText(globalThis.ExportTools.buildRow(template, { ...response, note }));
+    if (ok) saveNoteToHistory([response.data.ipAddress], note);
     button.textContent = ok ? "Kopyalandı ✓" : "Kopyalanamadı";
     setTimeout(() => {
       if (button.isConnected) button.textContent = "Excel'e kopyala";
@@ -704,6 +710,7 @@
     const note = currentNote();
     const rows = ctx.items.filter((i) => i.response?.status === "ok").map((i) => ({ ...i.response, note }));
     const ok = await copyText(globalThis.ExportTools.buildRows(template, rows));
+    if (ok) saveNoteToHistory(rows.map((r) => r.data.ipAddress), note);
     const label = button.textContent;
     button.textContent = ok ? `Kopyalandı ✓ (${rows.length} satır)` : "Kopyalanamadı";
     setTimeout(() => {

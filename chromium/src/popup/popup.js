@@ -68,6 +68,19 @@ async function renderQuota() {
 
 renderQuota().catch(() => {});
 
+$("open-history").addEventListener("click", () => {
+  ext.tabs.create({ url: ext.runtime.getURL("src/history/history.html") });
+  window.close();
+});
+
+async function renderHistoryCount() {
+  const stored = await ext.storage.local.get(STORAGE_KEYS.history);
+  const n = Array.isArray(stored[STORAGE_KEYS.history]) ? stored[STORAGE_KEYS.history].length : 0;
+  if (n > 0) $("open-history").textContent = `Sorgu geçmişi (${n})`;
+}
+
+renderHistoryCount().catch(() => {});
+
 $("open-options").addEventListener("click", () => ext.runtime.openOptionsPage());
 
 bindApiKeyForm({

@@ -87,6 +87,23 @@
       <p id="export-status" class="hint" role="status" aria-live="polite"></p>
     </section>
 
+    <section aria-labelledby="history-title">
+      <h2 id="history-title">Sorgu geçmişi</h2>
+      <p class="hint">
+        Başarılı sorgular ve eklediğiniz notlar yalnızca bu tarayıcıda saklanır. Geçmiş sayfasından
+        seçtiğiniz kayıtları tek seferde Excel'e kopyalayabilir ya da CSV olarak indirebilirsiniz.
+      </p>
+      <form id="history-form">
+        <label class="inline"><input id="history-enabled" type="checkbox"> Sorgu geçmişini kaydet</label>
+        <label for="history-days">Saklama süresi (gün, 1–90)</label>
+        <input id="history-days" type="number" min="1" max="90" step="1" required>
+        <div class="row">
+          <button type="submit">Kaydet</button>
+          <button type="button" id="history-open" class="secondary">Geçmişi aç</button>
+        </div>
+      </form>
+    </section>
+
     <section aria-labelledby="cache-title">
       <h2 id="cache-title">Önbellek</h2>
       <p class="hint">Aynı IP bu süre içinde tekrar sorgulanmaz. Önbellek tarayıcı kapanınca silinir.</p>

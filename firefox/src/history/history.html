@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sorgu geçmişi – IP Critical Scorer</title>
+  <link rel="stylesheet" href="../options/options.css">
+  <link rel="stylesheet" href="history.css">
+  <script src="../shared/export.js"></script>
+  <script type="module" src="history.js"></script>
+</head>
+<body>
+  <main class="wide">
+    <h1>Sorgu geçmişi</h1>
+    <p class="hint" id="retention"></p>
+
+    <div class="toolbar">
+      <label class="sr-only" for="range">Zaman aralığı</label>
+      <select id="range">
+        <option value="today">Bugün</option>
+        <option value="all">Tümü</option>
+      </select>
+      <label class="sr-only" for="search">Ara</label>
+      <input id="search" type="search" placeholder="IP, ISP, ülke ya da not ara" autocomplete="off">
+      <span id="count" class="count"></span>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" id="copy-selected">Seçilenleri Excel'e kopyala</button>
+      <button type="button" id="copy-visible" class="secondary">Görünenleri Excel'e kopyala</button>
+      <button type="button" id="download-csv" class="secondary">CSV indir</button>
+      <button type="button" id="delete-selected" class="secondary">Seçilenleri sil</button>
+      <button type="button" id="clear-all" class="secondary danger">Geçmişi temizle</button>
+    </div>
+    <p id="message" role="status" aria-live="polite"></p>
+
+    <div class="table-wrap">
+      <table id="history">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="select-all" aria-label="Görünenlerin hepsini seç"></th>
+            <th>Zaman</th>
+            <th>IP</th>
+            <th>Skor</th>
+            <th>Ülke</th>
+            <th>ISP</th>
+            <th>Not</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p id="empty" class="hint" hidden>Bu aralıkta kayıt yok. Bir IP sorguladığınızda burada görünür.</p>
+  </main>
+</body>
+</html>
