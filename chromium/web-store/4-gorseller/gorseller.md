@@ -15,12 +15,19 @@ Ekran görüntüleri bu sırayla yüklenmeli; mağazada ilk görsel öne çıkar
 
 ## Tanıtım videosu (YouTube)
 
-Belge bu alanı listeliyor; panelde zorunlu değilse boş bırak. Gerekirse 30–45 saniyelik ekran kaydı için senaryo:
+Dosya: `tanitim-videosu.mp4` (35 sn, 1280×720, sessiz). Eklentinin gerçek koduyla, örnek veri içeren bir SIEM sayfasında kaydedildi. Dosya git'e eklenmez.
 
-1. (0–5 sn) SIEM ekranı, bir IP'nin üzerinde imleç. Yazı: “IP'yi seçin.”
-2. (5–12 sn) IP seçilir, “IP'yi sorgula” butonu çıkar ve tıklanır.
-3. (12–22 sn) Kart açılır: skor, rapor sayısı, ülke, ISP. Yazı: “Sekme değiştirmeden AbuseIPDB skoru.”
-4. (22–30 sn) Özel bir IP seçilir; kart “AbuseIPDB'ye gönderilmedi” der. Yazı: “Özel adresler dışarı çıkmaz.”
-5. (30–40 sn) Araç çubuğu simgesi → anahtar girişi ve “Bu sitede etkinleştir”. Yazı: “Ücretsiz AbuseIPDB anahtarıyla çalışır.”
+Akış:
+1. Açılış: logo ve tek cümlelik tanıtım
+2. Log ekranında IP seçme → “IP'yi sorgula” butonu
+3. Sonuç kartı: skor, rapor sayısı, ülke, ISP
+4. Kartın dışına tıklayınca kapanma
+5. Özel IP: “AbuseIPDB'ye gönderilmedi”
+6. Popup'ta API anahtarı girme
+7. Kapanış: Chrome ve Firefox, gizlilik notu, “AbuseIPDB'nin resmi ürünü değildir”
 
-Kayıtta gerçek müşteri verisi ya da gerçek log kullanma; örnek veri içeren bir sayfa kullan.
+Mağazaya eklemek için:
+1. Videoyu YouTube'a yükle. Görünürlük: **Liste dışı** (Unlisted) yeterli.
+2. YouTube bağlantısını panelde **Global promo video** alanına yapıştır.
+
+Mağaza yalnızca YouTube bağlantısı kabul eder; MP4 doğrudan yüklenmez.

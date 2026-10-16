@@ -1,5 +1,6 @@
 dist/
 chromium/web-store/2-paket/*.zip
+chromium/web-store/4-gorseller/*.mp4
 node_modules/
 .DS_Store
 
