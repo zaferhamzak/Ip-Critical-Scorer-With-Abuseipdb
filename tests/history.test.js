@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { addEntry, entryFromResult, entryToResult, pruneHistory, removeEntries, setNote, MAX_HISTORY_ENTRIES } from "../chromium/src/shared/history.js";
+import { addEntry, addToList, entryFromResult, sanitizeList, entryToResult, pruneHistory, removeEntries, setNote, MAX_HISTORY_ENTRIES } from "../chromium/src/shared/history.js";
 
 const DAY = 24 * 60 * 60 * 1000;
 const now = 1_800_000_000_000;
@@ -35,4 +35,17 @@ test("remove and export helpers", () => {
   assert.equal(r.status, "ok");
   assert.equal(r.note, "Bloklandı");
   assert.equal(r.fetchedAt, now - 1000);
+});
+
+test("Excel list keeps picked IPs in order, replaces duplicates and keeps notes", () => {
+  const e = (ip, note = "") => ({ ...entryFromResult(result(ip), now), note });
+  let list = addToList([], [e("8.8.8.8", "Bloklandı"), e("1.1.1.1")]);
+  assert.deepEqual(list.map((x) => x.ip), ["8.8.8.8", "1.1.1.1"]);
+  list = addToList(list, [e("9.9.9.9"), e("8.8.8.8")]);
+  assert.deepEqual(list.map((x) => x.ip), ["9.9.9.9", "8.8.8.8", "1.1.1.1"]);
+  assert.equal(list[1].note, "Bloklandı");
+  list = addToList(list, [e("1.1.1.1", "False positive")]);
+  assert.equal(list[0].note, "False positive");
+  assert.deepEqual(sanitizeList([{ ip: 1 }, null, ...list]).length, 3);
+  assert.deepEqual(sanitizeList("x"), []);
 });

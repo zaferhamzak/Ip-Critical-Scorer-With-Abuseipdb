@@ -224,7 +224,7 @@
     }
   }
 
-  // Card shortcuts: C copy, O open, R refresh, N note, 1-9 quick note; Enter in the note copies.
+  // Card shortcuts: C copy, L Excel list, O open, R refresh, N note, 1-9 quick note; Enter in the note copies.
   function onCardKey(event) {
     if (!card || event.ctrlKey || event.metaKey || event.altKey) return;
     const target = event.composedPath()[0];
@@ -243,6 +243,7 @@
     const key = event.key.toLocaleLowerCase("tr");
     let handled = false;
     if (key === "c") handled = click("copy");
+    else if (key === "l") handled = click("list");
     else if (key === "o") handled = click("open");
     else if (key === "r") handled = click("refresh");
     else if (key === "n") {
@@ -398,6 +399,42 @@
     button.dataset.action = "copy";
     button.title = "Ayarlardaki Excel şablonuna göre tek satır kopyalar";
     return button;
+  }
+
+  // Excel list toggle for one IP. The worker builds the entry from its own data.
+  function listButton(ip) {
+    const button = actionButton("Listeye ekle", () => toggleListed(button, ip));
+    button.dataset.action = "list";
+    button.title = "Excel listesine ekler; listeyi eklenti simgesinden ya da geçmiş sayfasından tek seferde kopyalarsınız";
+    button.disabled = true;
+    sendMessage({ type: "getExportListStatus", ips: [ip] })
+      .then((status) => setListLabel(button, status?.listed?.includes(ip) === true, status?.count))
+      .catch(() => setListLabel(button, false));
+    return button;
+  }
+
+  function setListLabel(button, listed, count) {
+    button.dataset.listed = String(listed);
+    button.disabled = false;
+    button.textContent = listed ? `Listede ✓${typeof count === "number" ? ` (${count})` : ""}` : "Listeye ekle";
+    button.setAttribute("aria-pressed", String(listed));
+  }
+
+  async function toggleListed(button, ip) {
+    button.disabled = true;
+    try {
+      if (button.dataset.listed === "true") {
+        const r = await sendMessage({ type: "removeFromExportList", ips: [ip] });
+        setListLabel(button, !r?.ok, r?.count);
+      } else {
+        const r = await sendMessage({ type: "addToExportList", ips: [ip], note: currentNote() });
+        setListLabel(button, r?.ok && r.added > 0, r?.count);
+        if (r?.ok && r.added === 0) button.textContent = "Eklenemedi (yenileyin)";
+      }
+    } catch {
+      button.disabled = false;
+      button.textContent = "Eklenemedi";
+    }
   }
 
   function optionsButton(label) {
@@ -594,7 +631,7 @@
     );
     parts.push(dl);
 
-    parts.push(el("p", "shortcuts", "Kısayollar: C kopyala · O aç · R yenile · 1–9 hazır not · N not yaz"));
+    parts.push(el("p", "shortcuts", "Kısayollar: C kopyala · L listeye ekle · O aç · R yenile · 1–9 hazır not · N not yaz"));
     const fetched = dateFormat.format(new Date(response.fetchedAt));
     const meta = response.fromCache
       ? `AbuseIPDB APIv2 · ${fetched} · önbellekten (${response.ttlMinutes} dk)`
@@ -606,6 +643,7 @@
       footer(meta, [
         withAction(actionLink("AbuseIPDB'de aç", response.detailUrl || detailUrl(analysis.ip)), "open"),
         copyButton(response),
+        listButton(analysis.ip),
         refreshButton(analysis),
       ]),
     );
@@ -690,8 +728,22 @@
     return cell;
   }
 
-  function bulkRow(item) {
+  function bulkCheck(item, ctx) {
+    const box = el("input", "bulk-check");
+    box.type = "checkbox";
+    box.checked = item.picked !== false;
+    box.setAttribute("aria-label", `${item.analysis.ip} Excel'e girsin`);
+    box.addEventListener("change", () => {
+      item.picked = box.checked;
+      updateBulkActions(ctx);
+    });
+    return box;
+  }
+
+  function bulkRow(item, ctx) {
     const row = el("li", "bulk-row");
+    // Only answered lookups can go to Excel; others keep an empty slot so columns line up.
+    row.append(ctx.phase === "done" && item.response?.status === "ok" ? bulkCheck(item, ctx) : el("span", "bulk-check"));
     const link = el("a", "bulk-ip", item.analysis.ip);
     link.href = detailUrl(item.analysis.ip);
     link.target = "_blank";
@@ -726,7 +778,7 @@
     }
 
     const list = el("ol", "bulk-list");
-    for (const item of ctx.items) list.append(bulkRow(item));
+    for (const item of ctx.items) list.append(bulkRow(item, ctx));
     parts.push(list);
 
     if (ctx.phase === "confirm") {
@@ -739,32 +791,71 @@
         parts.push(el("p", "message error", text));
       }
       const okCount = ctx.items.filter((i) => i.response?.status === "ok").length;
+      if (okCount > 1) parts.push(el("p", "shortcuts", "İşaretini kaldırdığınız IP'ler Excel'e ve listeye girmez."));
       parts.push(noteBox());
       const quota = describeQuota(ctx.quota);
       if (quota) parts.push(el("p", quota.low ? "quota low" : "quota", quota.text));
       const actions = [];
       if (okCount > 0) {
-        const copy = actionButton(`Hepsini Excel'e kopyala (${okCount})`, () => copyBulk(copy, ctx));
+        const copy = actionButton("", () => copyBulk(copy, ctx));
         copy.dataset.action = "copy";
+        copy.dataset.role = "bulk-copy";
         copy.classList.add("primary");
-        actions.push(copy);
+        const add = actionButton("", () => addBulkToList(add, ctx));
+        add.dataset.action = "list";
+        add.dataset.role = "bulk-list";
+        actions.push(copy, add);
       }
       if (ctx.stopReason === "no_key" || ctx.stopReason === "unauthorized") actions.push(optionsButton("API anahtarı ekle"));
       parts.push(footer(null, actions));
     }
     setCardContent(`Toplu sorgu · ${ctx.items.length} IP`, overallSeverity(ctx), parts);
+    updateBulkActions(ctx);
+  }
+
+  function pickedItems(ctx) {
+    return ctx.items.filter((i) => i.response?.status === "ok" && i.picked !== false);
+  }
+
+  function updateBulkActions(ctx) {
+    const n = pickedItems(ctx).length;
+    const copy = card?.querySelector('[data-role="bulk-copy"]');
+    const add = card?.querySelector('[data-role="bulk-list"]');
+    if (copy) {
+      copy.textContent = `Seçilenleri Excel'e kopyala (${n})`;
+      copy.disabled = n === 0;
+    }
+    if (add) {
+      add.textContent = `Listeye ekle (${n})`;
+      add.disabled = n === 0;
+    }
+  }
+
+  async function addBulkToList(button, ctx) {
+    const ips = pickedItems(ctx).map((i) => i.response.data.ipAddress);
+    button.disabled = true;
+    let text;
+    try {
+      const r = await sendMessage({ type: "addToExportList", ips, note: currentNote() });
+      text = r?.ok ? `Listeye eklendi ✓ (liste: ${r.count})` : "Eklenemedi";
+    } catch {
+      text = "Eklenemedi";
+    }
+    button.textContent = text;
+    setTimeout(() => {
+      if (button.isConnected) updateBulkActions(ctx);
+    }, 1800);
   }
 
   async function copyBulk(button, ctx) {
     const { template } = await getExportSettings();
     const note = currentNote();
-    const rows = ctx.items.filter((i) => i.response?.status === "ok").map((i) => ({ ...i.response, note }));
+    const rows = pickedItems(ctx).map((i) => ({ ...i.response, note }));
     const ok = await copyText(globalThis.ExportTools.buildRows(template, rows));
     if (ok) saveNoteToHistory(rows.map((r) => r.data.ipAddress), note);
-    const label = button.textContent;
     button.textContent = ok ? `Kopyalandı ✓ (${rows.length} satır)` : "Kopyalanamadı";
     setTimeout(() => {
-      if (button.isConnected) button.textContent = label;
+      if (button.isConnected) updateBulkActions(ctx);
     }, 1800);
   }
 

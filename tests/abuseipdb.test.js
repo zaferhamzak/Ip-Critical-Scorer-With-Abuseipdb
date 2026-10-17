@@ -34,7 +34,7 @@ test("buildCheckRequest uses the configured period and clamps invalid values to 
 test("normalizeCheckResponse maps documented fields", () => {
   const data = normalizeCheckResponse(fixture, "203.0.113.200");
   assert.deepEqual(data, {
-    ipAddress: "203.0.113.200", abuseConfidenceScore: 87, totalReports: 42, numDistinctUsers: 17,
+    ipAddress: "203.0.113.200", ipVersion: 4, isPublic: true, abuseConfidenceScore: 87, totalReports: 42, numDistinctUsers: 17,
     lastReportedAt: "2026-10-15T08:30:00.000Z", countryCode: "NL", isp: "Synthetic Hosting B.V.",
     usageType: "Data Center/Web Hosting/Transit", domain: "synthetic.example", hostnames: [], isWhitelisted: false, isTor: false,
     maxAgeInDays: MAX_AGE_IN_DAYS,
@@ -50,6 +50,8 @@ test("missing or malformed fields become null, never zero", () => {
   assert.equal(data.lastReportedAt, null);
   assert.equal(data.isp, null);
   assert.equal(data.isTor, null);
+  assert.equal(data.ipVersion, null);
+  assert.equal(data.isPublic, null);
   assert.equal(normalizeCheckResponse({ data: { ipAddress: "203.0.113.200", abuseConfidenceScore: 101 } }, "203.0.113.200").abuseConfidenceScore, null);
 });
 

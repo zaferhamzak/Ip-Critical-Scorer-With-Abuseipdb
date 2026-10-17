@@ -6,29 +6,40 @@
 
   const MAX_COLUMNS = 30;
   const MAX_TEXT = 100;
+  // Custom column values may combine several {alias} placeholders, so they get more room.
+  const MAX_VALUE_TEXT = 300;
 
-  // Field catalog: key -> default header and how to read it from a lookup result.
+  // Field catalog: key -> default header, {alias} for custom columns, and how to read it
+  // from a lookup result. Every field of the AbuseIPDB check response has an entry.
   const FIELDS = {
-    queriedAt: { header: "Sorgu zamanı", get: (r) => formatDateTime(r.fetchedAt) },
-    ip: { header: "IP", get: (r) => r.data.ipAddress },
-    ipDefanged: { header: "IP (defang)", get: (r) => defang(r.data.ipAddress) },
-    score: { header: "Abuse skoru", get: (r) => r.data.abuseConfidenceScore },
-    risk: { header: "Risk", get: (r) => riskLabel(r.data.abuseConfidenceScore) },
-    totalReports: { header: "Rapor sayısı", get: (r) => r.data.totalReports },
-    distinctUsers: { header: "Kaynak sayısı", get: (r) => r.data.numDistinctUsers },
-    lastReportedAt: { header: "Son rapor", get: (r) => formatDateTime(r.data.lastReportedAt) },
-    countryName: { header: "Ülke", get: (r) => countryName(r.data.countryCode) },
-    countryCode: { header: "Ülke kodu", get: (r) => r.data.countryCode },
-    isp: { header: "ISP", get: (r) => r.data.isp },
-    usageType: { header: "Kullanım türü", get: (r) => r.data.usageType },
-    domain: { header: "Alan adı", get: (r) => r.data.domain },
-    hostnames: { header: "Hostname", get: (r) => (Array.isArray(r.data.hostnames) && r.data.hostnames.length ? r.data.hostnames.join(", ") : null) },
-    isTor: { header: "Tor", get: (r) => yesNo(r.data.isTor) },
-    isWhitelisted: { header: "Beyaz liste", get: (r) => yesNo(r.data.isWhitelisted) },
-    period: { header: "Rapor dönemi (gün)", get: (r) => r.data.maxAgeInDays },
-    detailUrl: { header: "AbuseIPDB bağlantısı", get: (r) => r.detailUrl },
-    note: { header: "Not", get: (r) => r.note },
+    queriedAt: { alias: "queried_at", header: "Sorgu zamanı", get: (r) => formatDateTime(r.fetchedAt) },
+    queriedDate: { alias: "date", header: "Sorgu tarihi", get: (r) => formatDate(r.fetchedAt) },
+    queriedTime: { alias: "time", header: "Sorgu saati", get: (r) => formatTime(r.fetchedAt) },
+    ip: { alias: "ip", header: "IP", get: (r) => r.data.ipAddress },
+    ipDefanged: { alias: "ip_defanged", header: "IP (defang)", get: (r) => defang(r.data.ipAddress) },
+    ipVersion: { alias: "ip_version", header: "IP sürümü", get: (r) => r.data.ipVersion ?? ipVersionOf(r.data.ipAddress) },
+    score: { alias: "score", header: "Abuse skoru", get: (r) => r.data.abuseConfidenceScore },
+    risk: { alias: "risk", header: "Risk", get: (r) => riskLabel(r.data.abuseConfidenceScore) },
+    totalReports: { alias: "reports", header: "Rapor sayısı", get: (r) => r.data.totalReports },
+    distinctUsers: { alias: "users", header: "Kaynak sayısı", get: (r) => r.data.numDistinctUsers },
+    lastReportedAt: { alias: "last_reported", header: "Son rapor", get: (r) => formatDateTime(r.data.lastReportedAt) },
+    lastReportedDate: { alias: "last_reported_date", header: "Son rapor tarihi", get: (r) => formatDate(r.data.lastReportedAt) },
+    countryName: { alias: "country_name", header: "Ülke", get: (r) => countryName(r.data.countryCode) },
+    countryCode: { alias: "country", header: "Ülke kodu", get: (r) => r.data.countryCode },
+    isp: { alias: "isp", header: "ISP", get: (r) => r.data.isp },
+    usageType: { alias: "usage_type", header: "Kullanım türü", get: (r) => r.data.usageType },
+    domain: { alias: "domain", header: "Alan adı", get: (r) => r.data.domain },
+    hostnames: { alias: "hostnames", header: "Hostname", get: (r) => (Array.isArray(r.data.hostnames) && r.data.hostnames.length ? r.data.hostnames.join(", ") : null) },
+    isTor: { alias: "tor", header: "Tor", get: (r) => yesNo(r.data.isTor) },
+    isWhitelisted: { alias: "whitelisted", header: "Beyaz liste", get: (r) => yesNo(r.data.isWhitelisted) },
+    isPublic: { alias: "public", header: "Genel IP", get: (r) => yesNo(r.data.isPublic) },
+    period: { alias: "period", header: "Rapor dönemi (gün)", get: (r) => r.data.maxAgeInDays },
+    detailUrl: { alias: "link", header: "AbuseIPDB bağlantısı", get: (r) => r.detailUrl },
+    note: { alias: "note", header: "Not", get: (r) => r.note },
   };
+
+  const FIELD_BY_ALIAS = new Map(Object.values(FIELDS).map((f) => [f.alias, f]));
+  const ALIAS_RE = /\{([a-z_]+)\}/gi;
 
   const EMPTY_VALUES = { blank: "", unknown: "Bilinmiyor", dash: "-" };
   const SEPARATORS = { tab: "\t", semicolon: ";" };
@@ -61,6 +72,18 @@
     return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
+  function formatDate(value) {
+    return formatDateTime(value)?.slice(0, 10) ?? null;
+  }
+
+  function formatTime(value) {
+    return formatDateTime(value)?.slice(11) ?? null;
+  }
+
+  function ipVersionOf(ip) {
+    return typeof ip === "string" ? (ip.includes(":") ? 6 : 4) : null;
+  }
+
   // 203.0.113.45 -> 203[.]0[.]113[.]45, 2001:db8::1 -> 2001[:]db8[:][:]1 (safe to paste in tickets/mail).
   function defang(ip) {
     if (typeof ip !== "string") return null;
@@ -85,9 +108,9 @@
     return name && name !== code ? name : code;
   }
 
-  function cleanText(value) {
+  function cleanText(value, max = MAX_TEXT) {
     if (typeof value !== "string") return "";
-    return value.replace(/[\t\r\n]+/g, " ").trim().slice(0, MAX_TEXT);
+    return value.replace(/[\t\r\n]+/g, " ").trim().slice(0, max);
   }
 
   function normalizeColumn(col) {
@@ -97,7 +120,7 @@
       return header ? { kind: "field", field: col.field, header } : { kind: "field", field: col.field };
     }
     if (col.kind === "custom") {
-      return { kind: "custom", header: cleanText(col.header) || "Özel", value: cleanText(col.value) };
+      return { kind: "custom", header: cleanText(col.header) || "Özel", value: cleanText(col.value, MAX_VALUE_TEXT) };
     }
     return null;
   }
@@ -131,6 +154,28 @@
     return text;
   }
 
+  function emptyText(value, template) {
+    return value === null || value === undefined || value === "" ? EMPTY_VALUES[template.empty] : String(value);
+  }
+
+  /**
+   * Replaces {alias} placeholders in a custom column with the result's values.
+   * Unknown aliases stay as typed so a typo is visible in the preview.
+   */
+  function fillAliases(text, result, template) {
+    if (!text.includes("{")) return text;
+    return text.replace(ALIAS_RE, (match, name) => {
+      const field = FIELD_BY_ALIAS.get(name.toLowerCase());
+      return field ? emptyText(field.get(result), template) : match;
+    });
+  }
+
+  /** Aliases in a text that do not exist, for warnings in the editor. */
+  function unknownAliases(text) {
+    if (typeof text !== "string") return [];
+    return [...new Set([...text.matchAll(ALIAS_RE)].map((m) => m[1].toLowerCase()).filter((a) => !FIELD_BY_ALIAS.has(a)))];
+  }
+
   function join(cells, template) {
     return cells.join(SEPARATORS[template.separator]);
   }
@@ -144,7 +189,7 @@
   function buildRow(rawTemplate, result) {
     const template = normalizeTemplate(rawTemplate);
     const values = template.columns.map((col) =>
-      col.kind === "field" ? FIELDS[col.field].get(result) : col.value,
+      col.kind === "field" ? FIELDS[col.field].get(result) : fillAliases(col.value, result, template),
     );
     return join(values.map((v) => cell(v, template)), template);
   }
@@ -154,10 +199,11 @@
     return results.map((r) => buildRow(rawTemplate, r)).join("\n");
   }
 
-  const FIELD_LIST = Object.entries(FIELDS).map(([key, f]) => ({ key, header: f.header }));
+  const FIELD_LIST = Object.entries(FIELDS).map(([key, f]) => ({ key, alias: f.alias, header: f.header }));
 
   globalThis.ExportTools = Object.freeze({
     MAX_COLUMNS,
+    MAX_VALUE_TEXT,
     FIELD_LIST,
     EMPTY_VALUES,
     DEFAULT_TEMPLATE,
@@ -166,6 +212,7 @@
     buildHeader,
     buildRow,
     buildRows,
+    unknownAliases,
     formatDateTime,
   });
 })();

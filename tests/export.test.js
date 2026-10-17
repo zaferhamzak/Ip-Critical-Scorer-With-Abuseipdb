@@ -78,7 +78,7 @@ test("normalizeTemplate drops unknown fields and falls back to the default", () 
   });
   assert.deepEqual(n.columns.map((c) => c.kind), ["field", "custom"]);
   assert.equal(n.columns[1].header, "Özel");
-  assert.equal(n.columns[1].value.length, 100);
+  assert.equal(n.columns[1].value.length, T.MAX_VALUE_TEXT);
   assert.equal(n.empty, "blank");
   assert.equal(n.separator, "tab");
   const many = { columns: Array.from({ length: 50 }, () => ({ kind: "field", field: "ip" })) };
@@ -91,4 +91,30 @@ test("defanged IP and hostname fields", () => {
   assert.equal(T.buildRow(t, withHosts), "203[.]0[.]113[.]45\tmail.example-hosting.test, www.example-hosting.test");
   const v6 = { ...result, data: { ...result.data, ipAddress: "2001:db8::1", hostnames: [] } };
   assert.equal(T.buildRow(t, v6), "2001[:]db8[:][:]1\t");
+});
+
+test("custom columns fill {alias} placeholders and keep unknown ones visible", () => {
+  const template = {
+    columns: [
+      { kind: "custom", header: "Özet", value: "{ip} | Skor {score} | {country_name} | {isp}" },
+      { kind: "custom", header: "Eksik", value: "{IP} {whitelisted} {note} {nope}" },
+      { kind: "custom", header: "Tarih", value: "{date} {time} v{ip_version}" },
+    ],
+    empty: "dash",
+    separator: "tab",
+  };
+  const row = T.buildRow(template, { ...result, note: "" }).split("\t");
+  assert.equal(row[0], "203.0.113.45 | Skor 92 | Hollanda | Example Hosting B.V.");
+  assert.equal(row[1], "203.0.113.45 - - {nope}");
+  assert.equal(row[2], "16.10.2026 09:41 v4");
+  assert.deepEqual(T.unknownAliases("{ip}{Nope}{x}{x}"), ["nope", "x"]);
+});
+
+test("every field has a unique alias and alias text cannot start a formula", () => {
+  const aliases = T.FIELD_LIST.map((f) => f.alias);
+  assert.equal(new Set(aliases).size, aliases.length);
+  assert.ok(aliases.every((a) => /^[a-z_]+$/.test(a)));
+  const evil = { ...result, data: { ...result.data, isp: "=HYPERLINK(\"x\")" } };
+  const row = T.buildRow({ columns: [{ kind: "custom", header: "x", value: "{isp}" }] }, evil);
+  assert.ok(row.startsWith("'="));
 });

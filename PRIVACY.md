@@ -1,6 +1,6 @@
 # IP Critical Scorer – Gizlilik Politikası / Privacy Policy
 
-Son güncelleme / Last updated: 2026-10-16
+Son güncelleme / Last updated: 2026-10-17
 
 ## Türkçe
 
@@ -19,9 +19,10 @@ IP Critical Scorer, sayfada seçtiğiniz IP adresinin AbuseIPDB itibar bilgisini
 - API anahtarınız, önbellek süresi, rapor dönemi ve site izinleri yalnızca tarayıcınızda (eklenti yerel depolaması, `storage.local`) saklanır.
 - Sorgu sonuçları, tarayıcı kapanınca silinen oturum önbelleğinde (`storage.session`) varsayılan olarak 15 dakika tutulur.
 - Sorgu geçmişi (sorgulanan IP'ler, sonuçları ve eklediğiniz notlar) yalnızca tarayıcınızda, varsayılan olarak 7 gün saklanır. Ayarlardan kapatılabilir, süresi değiştirilebilir ve geçmiş sayfasından silinebilir.
+- Excel listesine sizin eklediğiniz IP'ler (sonuçları ve notlarıyla) yalnızca tarayıcınızda, siz temizleyene kadar saklanır.
 - AbuseIPDB'nin bildirdiği kalan günlük sorgu hakkı (üç sayı) tarayıcınızda saklanır.
 - İsteğe bağlı “bilinen IP'leri işaretleme” açıksa, izin verdiğiniz sitelerde sayfa metni yalnızca tarayıcınızda IP aramak için taranır; sayfa içeriği hiçbir yere gönderilmez ve saklanmaz.
-- Ayar dışa aktarma dosyası API anahtarını ve sorgu geçmişini içermez.
+- Ayar dışa aktarma dosyası API anahtarını, sorgu geçmişini ve Excel listesini içermez.
 - Eklentiyi kaldırdığınızda bu veriler tarayıcı tarafından silinir.
 
 **Üçüncü taraf**
@@ -45,6 +46,7 @@ IP Critical Scorer is a browser extension (Chrome, Edge, Brave and Firefox) that
 **Data stored**
 - Your API key and settings are stored only in your browser (extension `storage.local`).
 - Lookup history (looked-up IPs, their results and your notes) stays in your browser, 7 days by default; it can be turned off, shortened or deleted.
+- IPs you add to the Excel list (with their results and notes) stay in your browser until you clear the list.
 - The remaining daily quota reported by AbuseIPDB (three numbers) is stored locally.
 - If the optional “highlight known IPs” setting is on, page text on sites you enabled is scanned locally for IP addresses only; page content is never sent or stored.
 - Settings export files never contain the API key or the history.

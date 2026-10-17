@@ -5,6 +5,7 @@
   <title>IP Critical Scorer</title>
   <link rel="stylesheet" href="../options/options.css">
   <link rel="stylesheet" href="popup.css">
+  <script src="../shared/export.js"></script>
   <script type="module" src="popup.js"></script>
 </head>
 <body>
@@ -33,6 +34,15 @@
       <p id="site-status">yükleniyor…</p>
       <div class="row">
         <button type="button" id="site-enable" hidden>Bu sitede etkinleştir</button>
+      </div>
+    </section>
+
+    <section aria-labelledby="list-title" id="list-section" hidden>
+      <h2 id="list-title">Excel listesi</h2>
+      <p id="list-status" class="hint"></p>
+      <div class="row">
+        <button type="button" id="list-copy">Listeyi Excel'e kopyala</button>
+        <button type="button" id="list-open" class="secondary">Listeyi düzenle</button>
       </div>
     </section>
 

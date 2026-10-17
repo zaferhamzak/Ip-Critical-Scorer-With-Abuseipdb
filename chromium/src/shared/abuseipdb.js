@@ -72,6 +72,8 @@ export function normalizeCheckResponse(body, requestedIp, maxAgeInDays = DEFAULT
   const countryCode = text(data.countryCode, 10);
   return {
     ipAddress: requested.ip,
+    ipVersion: data.ipVersion === 4 || data.ipVersion === 6 ? data.ipVersion : null,
+    isPublic: bool(data.isPublic),
     abuseConfidenceScore: nonNegativeInt(data.abuseConfidenceScore, 100),
     totalReports: nonNegativeInt(data.totalReports),
     numDistinctUsers: nonNegativeInt(data.numDistinctUsers),

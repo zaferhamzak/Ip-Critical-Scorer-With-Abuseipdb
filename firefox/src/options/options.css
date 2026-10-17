@@ -127,6 +127,13 @@ select {
 .export-columns .kind { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 .export-columns .tools { display: flex; gap: 4px; }
 .export-columns .tools button { padding: 4px 8px; }
+.alias-help { margin: 8px 0 12px; }
+.alias-help summary { cursor: pointer; font-weight: 600; }
+.alias-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
+.alias-table th, .alias-table td { text-align: left; padding: 4px 8px; border-top: 1px solid var(--border); vertical-align: top; }
+.alias-table thead th { border-top: 0; color: var(--muted); font-weight: 600; }
+.alias-table td:last-child { color: var(--muted); overflow-wrap: anywhere; }
+button.alias { padding: 2px 6px; font: 600 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 .export-options { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 12px; align-items: center; margin: 12px 0; }
 .block-label { margin-top: 12px; }
 textarea {

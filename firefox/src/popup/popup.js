@@ -1,4 +1,5 @@
 import { ext } from "../shared/ext.js";
+import { entryToResult, sanitizeList } from "../shared/history.js";
 import { STORAGE_KEYS, describeQuota, siteInputToMatchPattern } from "../shared/settings.js";
 import { bindApiKeyForm } from "../ui/api-key-form.js";
 
@@ -68,10 +69,40 @@ async function renderQuota() {
 
 renderQuota().catch(() => {});
 
-$("open-history").addEventListener("click", () => {
-  ext.tabs.create({ url: ext.runtime.getURL("src/history/history.html") });
+function openHistory(view) {
+  ext.tabs.create({ url: ext.runtime.getURL(`src/history/history.html${view ? `#${view}` : ""}`) });
   window.close();
+}
+
+$("open-history").addEventListener("click", () => openHistory());
+$("list-open").addEventListener("click", () => openHistory("list"));
+
+// Excel list: only the IPs the analyst added from the card or the history page.
+async function renderExportList() {
+  const stored = await ext.storage.local.get(STORAGE_KEYS.exportList);
+  const list = sanitizeList(stored[STORAGE_KEYS.exportList]);
+  $("list-section").hidden = list.length === 0;
+  $("list-status").textContent = `${list.length} IP listede. Kopyaladıktan sonra listeyi düzenle ekranından temizleyebilirsiniz.`;
+  $("list-copy").textContent = `Listeyi Excel'e kopyala (${list.length})`;
+  return list;
+}
+
+$("list-copy").addEventListener("click", async () => {
+  try {
+    const stored = await ext.storage.local.get([STORAGE_KEYS.exportList, STORAGE_KEYS.exportTemplate]);
+    const list = sanitizeList(stored[STORAGE_KEYS.exportList]);
+    if (list.length === 0) return showMessage("Liste boş.", "error");
+    const tools = globalThis.ExportTools;
+    // Oldest first so the spreadsheet reads in the order the IPs were added.
+    await navigator.clipboard.writeText(tools.buildRows(stored[STORAGE_KEYS.exportTemplate], [...list].reverse().map(entryToResult)));
+    showMessage(`${list.length} satır kopyalandı. Excel'de satırın ilk hücresine yapıştırın.`);
+  } catch (error) {
+    console.error(error);
+    showMessage("Kopyalanamadı.", "error");
+  }
 });
+
+renderExportList().catch(() => {});
 
 async function renderHistoryCount() {
   const stored = await ext.storage.local.get(STORAGE_KEYS.history);

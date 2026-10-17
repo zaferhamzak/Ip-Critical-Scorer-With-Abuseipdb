@@ -38,6 +38,7 @@ export const STORAGE_KEYS = Object.freeze({
   historyDays: "historyDays",
   highlightKnown: "highlightKnown",
   history: "history",
+  exportList: "exportList",
   quota: "quota",
 });
 

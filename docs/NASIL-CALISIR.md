@@ -2,7 +2,7 @@
 
 Bu belge eklentinin her parçasının ne yaptığını ve nasıl çalıştığını anlatır: kullanıcı akışları, ekranlar, veri saklama, gizlilik, iç mimari, sınırlar, test ve yayın süreci. Kısa kurulum ve kullanım için depo kökündeki `README.md` yeterlidir; bu belge “neden ve nasıl” sorularının cevabıdır.
 
-Belge 0.6.0 sürümünü anlatır.
+Belge 0.7.0 sürümünü anlatır.
 
 ---
 
@@ -205,7 +205,7 @@ Kod: `src/content/content-script.js`, stiller `src/content/card-styles.js`.
 - **Ayrıntılar:** Rapor sayısı ve kaynak sayısı, son rapor, ülke, ISP, kullanım türü, alan adı, hostname. Eksik değerler soluk “Bilinmiyor”.
 - **Not alanı:** Hazır not düğmeleri ve serbest not alanı (bkz. [Notlar](#8-notlar-ve-hazır-notlar)).
 - **Kısayol satırı, kalan hak satırı, kaynak satırı:** “AbuseIPDB APIv2 · zaman · önbellekten”.
-- **Butonlar:** AbuseIPDB'de aç, Excel'e kopyala, ↻ Yenile.
+- **Butonlar:** AbuseIPDB'de aç, Excel'e kopyala, Listeye ekle (listedeyse “Listede ✓ (N)”, tekrar basınca listeden çıkarır), ↻ Yenile.
 
 Diğer durumlarda kart renkli kenarlı bir bilgi kutusu gösterir: özel IP (mavi), anahtar yok (mavi), hata (kırmızı).
 
@@ -229,7 +229,7 @@ Birden fazla IP içeren bir metin seçildiğinde (log satırı, tablo satırlar�
 3. **Onay:** Genel IP sayısı 10 ya da daha azsa sorgu hemen başlar. 10'dan fazlaysa kart, kaç sorgu yapılacağını ve bunların günlük haktan düşeceğini yazıp **Sorgulamayı başlat** butonuyla onay ister. Önbellekteki IP'ler hak harcamaz.
 4. **Sorgu:** Aynı anda en fazla 2 sorgu çalışır; her satır “bekliyor → sorgulanıyor → sonuç” olarak güncellenir. Sonuç satırında renkli skor çipi, ülke kodu ve ISP görünür.
 5. **Durma:** API anahtarı yoksa, anahtar geçersizse, istek reddedilirse ya da günlük hak biterse kalan IP'ler “atlandı” olarak işaretlenir ve sorgu durur.
-6. **Kopyalama:** Bitince not alanı ve **Hepsini Excel'e kopyala (N)** çıkar. Her başarılı IP için bir satır, aynı notla kopyalanır. Kartın üst kenarı en yüksek skora göre renklenir.
+6. **Kopyalama:** Bitince başarılı her satırın başında işaretli bir onay kutusu, not alanı, **Seçilenleri Excel'e kopyala (N)** ve **Listeye ekle (N)** çıkar. İşareti kaldırılan IP'ler ne kopyalanır ne listeye eklenir; N işaretli IP sayısıdır. Her IP için bir satır, aynı notla kopyalanır. Kartın üst kenarı en yüksek skora göre renklenir.
 
 IP adreslerine tıklamak AbuseIPDB sayfasını yeni sekmede açar.
 
@@ -272,8 +272,23 @@ Kullanılabilen alanlar:
 | Rapor dönemi | Rapor dönemi (gün) | `365` |
 | AbuseIPDB bağlantısı | AbuseIPDB bağlantısı | tam adres |
 | Not | Not | `Bloklandı` |
+| Sorgu tarihi / saati | Sorgu tarihi / Sorgu saati | `16.10.2026` / `09:41` |
+| Son rapor tarihi | Son rapor tarihi | `16.10.2026` |
+| IP sürümü | IP sürümü | `4` |
+| Genel IP | Genel IP | `Evet` |
 
-- **Özel sütun:** Kendi tablonuzdaki “Analist”, “Ticket No” gibi sütunlar için. Sabit bir değer (ör. adınız) yazılabilir ya da boş bırakılıp yer tutulabilir.
+AbuseIPDB `check` yanıtındaki (verbose olmadan) her alan bu tabloda karşılık bulur: `ipAddress`, `isPublic`, `ipVersion`, `isWhitelisted`, `abuseConfidenceScore`, `countryCode`, `usageType`, `isp`, `domain`, `hostnames`, `isTor`, `totalReports`, `numDistinctUsers`, `lastReportedAt`.
+
+### Alias'lar
+
+Her alanın bir alias'ı vardır (`{ip}`, `{score}`, `{country_name}`, `{date}`, `{link}` …; tam liste README'de ve ayarlar sayfasındaki tabloda). Özel sütunun değeri sabit metinle alias'ları karıştırabilir: `{ip} | Skor {score} | {isp}` → `203.0.113.45 | Skor 92 | Example Hosting B.V.`
+
+- Alias'lar büyük/küçük harf duyarsızdır. Tanınmayan alias olduğu gibi yazılır; ayarlar sayfası “Tanınmayan alias” uyarısı gösterir.
+- Boş bir alanın yerine “Boş değerler” ayarındaki değer yazılır.
+- Özel sütun değeri en fazla 300 karakterdir. Sonuç hücresi yine formül korumasından geçer.
+- Ayarlar sayfasında alias'a tıklamak, imleç konumuna (son tıklanan özel sütun; yoksa yeni bir özel sütun açılır) ekler.
+
+- **Özel sütun:** Kendi tablonuzdaki “Analist”, “Ticket No” gibi sütunlar için. Sabit bir değer (ör. adınız) ya da alias'lı bir metin yazılabilir, ya da boş bırakılıp yer tutulabilir.
 - **Düzenleme:** Ekleme, kaldırma, ↑ ↓ ile sıralama, başlığı yeniden adlandırma. En fazla 30 sütun.
 - **Boş değerler:** Boş hücre, “Bilinmiyor” ya da “-”.
 - **Ayırıcı:** Sekme (Excel'e yapıştırmak için) ya da noktalı virgül (CSV için).
@@ -288,6 +303,18 @@ Kullanılabilen alanlar:
 - Değerlerin içindeki sekme ve satır sonları boşluğa çevrilir; bir değer satırı bölemez.
 - `=`, `+`, `-` ya da `@` ile başlayan metinlerin başına `'` eklenir (bkz. [Güvenlik](#17-güvenlik-önlemleri)).
 - Noktalı virgül ayırıcıda, içinde `;` ya da `"` geçen hücreler tırnak içine alınır.
+
+### Excel listesi
+
+Kod: `src/shared/history.js` (`addToList`, `sanitizeList`), arka planda `addToExportList`, `removeFromExportList`, `getExportListStatus` mesajları. Depolama anahtarı `exportList` (`storage.local`).
+
+- Amaç: her sorgunun değil, yalnızca analistin seçtiği IP'lerin Excel'e gitmesi.
+- Ekleme yolları: kartta **Listeye ekle** ya da L; toplu kartta işaretli IP'ler; geçmiş sayfasında **Seçilenleri listeye ekle**.
+- Kart o anki notu da gönderir. Not boşsa listedeki eski not korunur. Geçmiş sayfasında not değiştirilince listedeki not da güncellenir.
+- Güvenlik: content script yalnızca IP gönderir. Kaydın verisini arka plan kendi oturum önbelleğinden, yoksa geçmişten alır; ikisinde de olmayan IP eklenmez (sayfa sahte sonuç ekleyemez).
+- Saklama: süre sınırı yok, siz temizleyene kadar kalır; en fazla 500 IP. Geçmiş kaydı kapalı olsa da çalışır. Ayar dışa aktarma dosyasına girmez.
+- Aktarma: araç çubuğu penceresinde **Listeyi Excel'e kopyala (N)** (liste boşsa bölüm görünmez) ya da geçmiş sayfasının **Excel listesi** görünümü. Satırlar eklenme sırasıyla (en eski üstte) kopyalanır.
+- Düzenleme: geçmiş sayfasının **Excel listesi** görünümünde **Seçilenleri listeden çıkar** ve **Listeyi temizle** (iki tıkla onay).
 
 ---
 
@@ -372,7 +399,8 @@ Teknik ayrıntılar:
 | Tuş | Nerede | İş |
 |---|---|---|
 | Alt+Shift+A (Mac: Option+Shift+A) | sayfada | Seçili IP'yi ya da IP'leri sorgula |
-| C | kart açıkken | Excel'e kopyala (toplu kartta hepsini) |
+| C | kart açıkken | Excel'e kopyala (toplu kartta işaretlileri) |
+| L | kart açıkken | Excel listesine ekle / listeden çıkar (toplu kartta işaretlileri ekler) |
 | O | kart açıkken | AbuseIPDB'de aç |
 | R | kart açıkken | Yenile |
 | 1–9 | kart açıkken | Sıradaki hazır notu seç |

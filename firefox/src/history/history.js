@@ -3,12 +3,14 @@
 
 import { ext } from "../shared/ext.js";
 import { STORAGE_KEYS, mergeSettings } from "../shared/settings.js";
-import { entryToResult, pruneHistory } from "../shared/history.js";
+import { entryToResult, pruneHistory, sanitizeList } from "../shared/history.js";
 
 const tools = globalThis.ExportTools;
 const $ = (id) => document.getElementById(id);
 const selected = new Set();
 let entries = [];
+let historyEntries = [];
+let listEntries = [];
 let historyDays = 7;
 let clearArmed = false;
 
@@ -30,6 +32,10 @@ function startOfToday() {
   return d.getTime();
 }
 
+function listView() {
+  return $("range").value === "list";
+}
+
 function visibleEntries() {
   const from = $("range").value === "today" ? startOfToday() : 0;
   const q = $("search").value.trim().toLocaleLowerCase("tr");
@@ -47,7 +53,20 @@ function cell(text, className) {
   return td;
 }
 
+let listed = new Set();
+
 function render() {
+  entries = listView() ? listEntries : historyEntries;
+  listed = new Set(listEntries.map((e) => e.ip));
+  for (const ip of [...selected]) if (!entries.some((e) => e.ip === ip)) selected.delete(ip);
+  const inList = listView();
+  $("list-add").hidden = inList;
+  $("delete-selected").textContent = inList ? "Seçilenleri listeden çıkar" : "Seçilenleri sil";
+  $("clear-all").textContent = inList ? "Listeyi temizle" : "Geçmişi temizle";
+  $("list-hint").hidden = !inList;
+  $("empty").textContent = inList
+    ? "Excel listesi boş. Kartta “Listeye ekle” ya da burada geçmişten “Seçilenleri listeye ekle” ile IP ekleyin."
+    : "Bu aralıkta kayıt yok. Bir IP sorguladığınızda burada görünür.";
   const rows = visibleEntries();
   const tbody = $("history").tBodies[0];
   tbody.replaceChildren();
@@ -75,6 +94,13 @@ function render() {
     link.textContent = e.ip;
     const tdIp = cell(undefined, "ip");
     tdIp.append(link);
+    if (!listView() && listed.has(e.ip)) {
+      const badge = document.createElement("span");
+      badge.className = "listed";
+      badge.textContent = "Listede";
+      badge.title = "Excel listesinde";
+      tdIp.append(badge);
+    }
 
     const score = e.data.abuseConfidenceScore;
     const chip = document.createElement("span");
@@ -120,7 +146,9 @@ async function copyEntries(list) {
     return;
   }
   const template = await getTemplate();
-  await navigator.clipboard.writeText(tools.buildRows(template, list.map(entryToResult)));
+  // The Excel list is copied oldest first, in the order the IPs were added.
+  const ordered = listView() ? [...list].reverse() : list;
+  await navigator.clipboard.writeText(tools.buildRows(template, ordered.map(entryToResult)));
   message(`${list.length} satır kopyalandı. Excel'de satırın ilk hücresine yapıştırın.`);
 }
 
@@ -143,11 +171,13 @@ async function downloadCsv() {
 }
 
 async function load() {
-  const stored = await ext.storage.local.get([STORAGE_KEYS.history, STORAGE_KEYS.historyDays, STORAGE_KEYS.historyEnabled]);
+  const stored = await ext.storage.local.get([STORAGE_KEYS.history, STORAGE_KEYS.historyDays, STORAGE_KEYS.historyEnabled, STORAGE_KEYS.exportList]);
   const settings = mergeSettings(stored);
   historyDays = settings.historyDays;
-  entries = pruneHistory(stored[STORAGE_KEYS.history], historyDays, Date.now());
-  for (const ip of [...selected]) if (!entries.some((e) => e.ip === ip)) selected.delete(ip);
+  historyEntries = pruneHistory(stored[STORAGE_KEYS.history], historyDays, Date.now());
+  listEntries = sanitizeList(stored[STORAGE_KEYS.exportList]);
+  const listOption = $("range").querySelector('option[value="list"]');
+  listOption.textContent = `Excel listesi (${listEntries.length})`;
   $("retention").textContent = settings.historyEnabled
     ? `Son ${historyDays} günün sorguları, yalnızca bu tarayıcıda saklanır. Süreyi ayarlardan değiştirebilirsiniz.`
     : "Geçmiş kaydı ayarlardan kapatılmış; yeni sorgular kaydedilmiyor.";
@@ -161,7 +191,12 @@ function guard(fn) {
   });
 }
 
-$("range").addEventListener("change", render);
+$("range").addEventListener("change", () => {
+  selected.clear();
+  history.replaceState(null, "", listView() ? "#list" : location.pathname);
+  render();
+});
+if (location.hash === "#list") $("range").value = "list";
 $("search").addEventListener("input", render);
 $("select-all").addEventListener("change", (e) => {
   for (const entry of visibleEntries()) {
@@ -173,13 +208,24 @@ $("select-all").addEventListener("change", (e) => {
 $("copy-selected").addEventListener("click", guard(() => copyEntries(entries.filter((e) => selected.has(e.ip)))));
 $("copy-visible").addEventListener("click", guard(() => copyEntries(visibleEntries())));
 $("download-csv").addEventListener("click", guard(downloadCsv));
+$("list-add").addEventListener("click", guard(async () => {
+  if (selected.size === 0) return message("Önce listeye eklenecek kayıtları seçin.", "error");
+  // Keep the on-screen order (newest first) so the list matches what was picked.
+  const ips = historyEntries.filter((e) => selected.has(e.ip)).map((e) => e.ip);
+  const r = await ext.runtime.sendMessage({ type: "addToExportList", ips });
+  if (!r?.ok) return message("Listeye eklenemedi.", "error");
+  selected.clear();
+  await load();
+  message(`${r.added} IP listeye eklendi. Listede ${r.count} IP var.`);
+}));
 $("delete-selected").addEventListener("click", guard(async () => {
   if (selected.size === 0) return message("Önce silinecek kayıtları seçin.", "error");
   const count = selected.size;
-  await ext.runtime.sendMessage({ type: "removeHistory", ips: [...selected] });
+  const inList = listView();
+  await ext.runtime.sendMessage({ type: inList ? "removeFromExportList" : "removeHistory", ips: [...selected] });
   selected.clear();
   render();
-  message(`${count} kayıt silindi.`);
+  message(inList ? `${count} IP listeden çıkarıldı.` : `${count} kayıt silindi.`);
 }));
 $("clear-all").addEventListener("click", guard(async () => {
   const button = $("clear-all");
@@ -188,19 +234,19 @@ $("clear-all").addEventListener("click", guard(async () => {
     button.textContent = "Emin misiniz? Tekrar tıklayın";
     setTimeout(() => {
       clearArmed = false;
-      button.textContent = "Geçmişi temizle";
+      render();
     }, 4000);
     return;
   }
   clearArmed = false;
-  button.textContent = "Geçmişi temizle";
-  await ext.runtime.sendMessage({ type: "removeHistory", all: true });
+  const inList = listView();
+  await ext.runtime.sendMessage({ type: inList ? "removeFromExportList" : "removeHistory", all: true });
   selected.clear();
   render();
-  message("Geçmiş temizlendi.");
+  message(inList ? "Excel listesi temizlendi." : "Geçmiş temizlendi.");
 }));
 ext.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && (STORAGE_KEYS.history in changes || STORAGE_KEYS.historyDays in changes)) load();
+  if (area === "local" && [STORAGE_KEYS.history, STORAGE_KEYS.historyDays, STORAGE_KEYS.exportList].some((k) => k in changes)) load();
 });
 
 guard(load)();

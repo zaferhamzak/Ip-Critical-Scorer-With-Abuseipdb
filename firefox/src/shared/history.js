@@ -50,3 +50,22 @@ export function removeEntries(list, ips) {
 export function entryToResult(entry) {
   return { status: "ok", fetchedAt: entry.fetchedAt ?? entry.at, detailUrl: entry.detailUrl, data: entry.data, note: entry.note };
 }
+
+// Excel list: IPs the analyst explicitly picked for the spreadsheet. Same entry shape as
+// history, but no age limit; it is kept until the analyst removes or clears it.
+
+/** Drops malformed entries and caps the size. */
+export function sanitizeList(list) {
+  return Array.isArray(list) ? list.filter(isEntry).slice(0, MAX_HISTORY_ENTRIES) : [];
+}
+
+/** Puts the entries on top in the given order; an IP already listed keeps its note unless a new one is given. */
+export function addToList(list, entries) {
+  let next = sanitizeList(list);
+  for (const entry of [...entries].reverse()) {
+    const previous = next.find((e) => e.ip === entry.ip);
+    const merged = { ...entry, note: entry.note || previous?.note || "" };
+    next = [merged, ...next.filter((e) => e.ip !== entry.ip)];
+  }
+  return next.slice(0, MAX_HISTORY_ENTRIES);
+}

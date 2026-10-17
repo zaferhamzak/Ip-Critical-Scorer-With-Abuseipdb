@@ -14,14 +14,16 @@ const SAMPLE = {
   data: {
     ipAddress: "203.0.113.45", abuseConfidenceScore: 92, totalReports: 214, numDistinctUsers: 61,
     lastReportedAt: new Date(Date.now() - 3600_000).toISOString(), countryCode: "NL", isp: "Example Hosting B.V.",
-    usageType: "Data Center/Web Hosting/Transit", domain: "example-hosting.test", isTor: false, isWhitelisted: false,
-    maxAgeInDays: 365,
+    usageType: "Data Center/Web Hosting/Transit", domain: "example-hosting.test", hostnames: ["host-45.example-hosting.test"],
+    isTor: false, isWhitelisted: false, ipVersion: 4, isPublic: true, maxAgeInDays: 365,
   },
   note: "False positive",
 };
 
 let template = tools.normalizeTemplate(null);
 let dirty = false;
+// Custom value input that alias buttons insert into (the last one the user touched).
+let aliasTarget = null;
 
 function setStatus(text) {
   $("export-status").textContent = text;
@@ -29,7 +31,10 @@ function setStatus(text) {
 
 function markDirty() {
   dirty = true;
-  setStatus("Kaydedilmemiş değişiklik var.");
+  const unknown = [...new Set(template.columns.flatMap((c) => (c.kind === "custom" ? tools.unknownAliases(c.value) : [])))];
+  setStatus(unknown.length
+    ? `Kaydedilmemiş değişiklik var. Tanınmayan alias: ${unknown.map((a) => `{${a}}`).join(", ")} (olduğu gibi yazılır).`
+    : "Kaydedilmemiş değişiklik var.");
   renderPreview();
 }
 
@@ -71,11 +76,15 @@ function renderColumns() {
     if (col.kind === "field") {
       second = el("span", { className: "kind" }, `Alan: ${fieldName(col.field)}`);
     } else {
-      second = el("input", { type: "text", maxLength: 100, value: col.value, placeholder: "Sabit değer (boş bırakılabilir)" });
-      second.setAttribute("aria-label", `${i + 1}. sütunun sabit değeri`);
+      second = el("input", { type: "text", maxLength: tools.MAX_VALUE_TEXT, value: col.value, placeholder: "Sabit değer ya da {ip} gibi alias (boş bırakılabilir)" });
+      second.setAttribute("aria-label", `${i + 1}. sütunun değeri`);
+      second.dataset.column = String(i);
       second.addEventListener("input", () => {
         col.value = second.value;
         markDirty();
+      });
+      second.addEventListener("focus", () => {
+        aliasTarget = second;
       });
     }
 
@@ -116,6 +125,48 @@ function renderPreview() {
   table.append(headRow, dataRow);
 }
 
+function renderAliases() {
+  const body = $("alias-list");
+  body.replaceChildren();
+  for (const f of tools.FIELD_LIST) {
+    const button = el("button", { type: "button", className: "secondary alias" }, `{${f.alias}}`);
+    button.title = "Son seçilen özel sütuna ekle";
+    button.addEventListener("click", () => insertAlias(f.alias));
+    const sample = tools.buildRow({ columns: [{ kind: "custom", header: "x", value: `{${f.alias}}` }], empty: "dash", separator: "tab" }, SAMPLE);
+    const tr = el("tr");
+    const tdAlias = el("td");
+    tdAlias.append(button);
+    tr.append(tdAlias, el("td", {}, f.header), el("td", {}, sample));
+    body.append(tr);
+  }
+}
+
+// Inserts {alias} at the cursor of the last focused custom column; adds one if none exists.
+function insertAlias(alias) {
+  const text = `{${alias}}`;
+  let input = aliasTarget?.isConnected ? aliasTarget : null;
+  if (!input) {
+    const index = template.columns.findIndex((c) => c.kind === "custom");
+    input = index >= 0 ? $("export-columns").querySelector(`input[data-column="${index}"]`) : null;
+  }
+  if (!input) {
+    if (template.columns.length >= tools.MAX_COLUMNS) return setStatus("Sütun sınırına ulaşıldı; önce bir sütunu kaldırın.");
+    template.columns.push({ kind: "custom", header: "Özel sütun", value: "" });
+    renderColumns();
+    input = $("export-columns").querySelector(`input[data-column="${template.columns.length - 1}"]`);
+  }
+  const col = template.columns[Number(input.dataset.column)];
+  const start = input.selectionStart ?? input.value.length;
+  const end = input.selectionEnd ?? input.value.length;
+  const next = (input.value.slice(0, start) + text + input.value.slice(end)).slice(0, tools.MAX_VALUE_TEXT);
+  input.value = next;
+  col.value = next;
+  input.focus();
+  input.setSelectionRange(start + text.length, start + text.length);
+  aliasTarget = input;
+  markDirty();
+}
+
 function renderAll() {
   renderColumns();
   $("export-empty").value = template.empty;
@@ -148,7 +199,8 @@ async function copyHeader() {
 
 export async function initExportEditor() {
   const select = $("export-field");
-  for (const f of tools.FIELD_LIST) select.append(el("option", { value: f.key }, f.header));
+  for (const f of tools.FIELD_LIST) select.append(el("option", { value: f.key }, `${f.header} {${f.alias}}`));
+  renderAliases();
 
   $("export-add-field").addEventListener("click", () => {
     template.columns.push({ kind: "field", field: select.value });

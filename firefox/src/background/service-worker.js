@@ -4,8 +4,8 @@
 
 import { ext } from "../shared/ext.js";
 import "../shared/export.js";
-import { STORAGE_KEYS, mergeSettings, normalizeNote, normalizeQuickNotes, pagePatternsFromGranted } from "../shared/settings.js";
-import { addEntry, entryFromResult, pruneHistory, removeEntries, setNote } from "../shared/history.js";
+import { CACHE_KEY_PREFIX, STORAGE_KEYS, mergeSettings, normalizeNote, normalizeQuickNotes, pagePatternsFromGranted } from "../shared/settings.js";
+import { addEntry, addToList, entryFromResult, pruneHistory, removeEntries, sanitizeList, setNote } from "../shared/history.js";
 import { createLookupService } from "./lookup-service.js";
 
 const CONTENT_SCRIPT_ID = "ip-selector";
@@ -62,22 +62,57 @@ function syncSafely() {
   syncContentScripts().catch((error) => console.error("content script sync failed", error));
 }
 
-// History writes are serialised: bulk lookups finish in parallel and would otherwise
-// overwrite each other's read-modify-write.
-let historyQueue = Promise.resolve();
+// History and Excel list writes are serialised: bulk lookups finish in parallel and
+// would otherwise overwrite each other's read-modify-write.
+let writeQueue = Promise.resolve();
+function serialized(task, label) {
+  writeQueue = writeQueue.then(task).catch((error) => console.error(`${label} failed`, error));
+  return writeQueue;
+}
+
 function updateHistory(mutate, { evenIfDisabled = false } = {}) {
-  historyQueue = historyQueue
-    .then(async () => {
-      const keys = [STORAGE_KEYS.history, STORAGE_KEYS.historyEnabled, STORAGE_KEYS.historyDays];
-      const stored = await ext.storage.local.get(keys);
-      const settings = mergeSettings(stored);
-      if (!settings.historyEnabled && !evenIfDisabled) return;
-      const now = Date.now();
-      const next = mutate(pruneHistory(stored[STORAGE_KEYS.history], settings.historyDays, now), settings.historyDays, now);
-      await ext.storage.local.set({ [STORAGE_KEYS.history]: next });
-    })
-    .catch((error) => console.error("history update failed", error));
-  return historyQueue;
+  return serialized(async () => {
+    const keys = [STORAGE_KEYS.history, STORAGE_KEYS.historyEnabled, STORAGE_KEYS.historyDays];
+    const stored = await ext.storage.local.get(keys);
+    const settings = mergeSettings(stored);
+    if (!settings.historyEnabled && !evenIfDisabled) return;
+    const now = Date.now();
+    const next = mutate(pruneHistory(stored[STORAGE_KEYS.history], settings.historyDays, now), settings.historyDays, now);
+    await ext.storage.local.set({ [STORAGE_KEYS.history]: next });
+  }, "history update");
+}
+
+/** `mutate(list, context)` returns the new list or null to leave it unchanged. Resolves with the result. */
+function updateExportList(mutate) {
+  let result = null;
+  return serialized(async () => {
+    const stored = await ext.storage.local.get(STORAGE_KEYS.exportList);
+    const next = await mutate(sanitizeList(stored[STORAGE_KEYS.exportList]));
+    if (next) await ext.storage.local.set({ [STORAGE_KEYS.exportList]: next });
+    result = next ?? sanitizeList(stored[STORAGE_KEYS.exportList]);
+  }, "excel list update").then(() => result);
+}
+
+// Entries for the Excel list are built from data the worker already holds (session
+// cache, then history), never from data a content script sends.
+async function knownResults(ips) {
+  const keys = ips.map((ip) => CACHE_KEY_PREFIX + ip);
+  const [cached, stored] = await Promise.all([
+    ext.storage.session.get(keys),
+    ext.storage.local.get([STORAGE_KEYS.history, STORAGE_KEYS.historyDays, STORAGE_KEYS.historyEnabled]),
+  ]);
+  const history = pruneHistory(stored[STORAGE_KEYS.history], mergeSettings(stored).historyDays, Date.now());
+  const found = [];
+  for (const ip of ips) {
+    const c = cached[CACHE_KEY_PREFIX + ip];
+    if (c?.data && typeof c.fetchedAt === "number") {
+      found.push({ status: "ok", data: c.data, fetchedAt: c.fetchedAt, detailUrl: globalThis.IpTools.detailUrl(ip) });
+      continue;
+    }
+    const h = history.find((e) => e.ip === ip);
+    if (h) found.push({ status: "ok", data: h.data, fetchedAt: h.fetchedAt ?? h.at, detailUrl: h.detailUrl, note: h.note });
+  }
+  return found;
 }
 
 function canonicalIps(value) {
@@ -138,7 +173,44 @@ ext.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const ips = canonicalIps(message.ips);
       if (!ips || typeof message.note !== "string") return false;
       const note = normalizeNote(message.note);
-      updateHistory((list) => setNote(list, ips, note), { evenIfDisabled: true }).then(() => sendResponse({ ok: true }));
+      updateHistory((list) => setNote(list, ips, note), { evenIfDisabled: true })
+        .then(() => updateExportList((list) => (list.some((e) => ips.includes(e.ip)) ? setNote(list, ips, note) : null)))
+        .then(() => sendResponse({ ok: true }));
+      return true;
+    }
+    case "addToExportList": {
+      const ips = canonicalIps(message.ips);
+      if (!ips || (message.note !== undefined && typeof message.note !== "string")) return false;
+      const note = normalizeNote(message.note ?? "");
+      knownResults(ips)
+        .then((results) => {
+          const now = Date.now();
+          const entries = results.map((r) => ({ ...entryFromResult(r, now), note: note || r.note || "" }));
+          return updateExportList((list) => (entries.length ? addToList(list, entries) : null)).then((list) => ({ list, added: entries.length }));
+        })
+        .then(({ list, added }) => sendResponse({ ok: true, added, missing: ips.length - added, count: list.length }))
+        .catch(() => sendResponse({ ok: false }));
+      return true;
+    }
+    case "removeFromExportList": {
+      const ips = message.all === true ? null : canonicalIps(message.ips);
+      if (message.all !== true && !ips) return false;
+      updateExportList((list) => (ips ? removeEntries(list, ips) : []))
+        .then((list) => sendResponse({ ok: true, count: list.length }))
+        .catch(() => sendResponse({ ok: false }));
+      return true;
+    }
+    case "getExportListStatus": {
+      const ips = canonicalIps(message.ips ?? []);
+      if (!ips) return false;
+      ext.storage.local
+        .get(STORAGE_KEYS.exportList)
+        .then((stored) => {
+          const list = sanitizeList(stored[STORAGE_KEYS.exportList]);
+          const listed = new Set(list.map((e) => e.ip));
+          sendResponse({ listed: ips.filter((ip) => listed.has(ip)), count: list.length });
+        })
+        .catch(() => sendResponse({ listed: [], count: 0 }));
       return true;
     }
     case "removeHistory": {

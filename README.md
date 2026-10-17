@@ -16,7 +16,7 @@ Her özelliğin nasıl çalıştığının ayrıntılı anlatımı: [docs/NASIL-
 - Özel ve yerel adresler (`10.x`, `192.168.x`, `127.x`, `fe80::`, CGNAT, dokümantasyon aralıkları vb.) dışarı gönderilmez; kartta adresin türü açıklanır.
 - API anahtarı girilmemişse kart, AbuseIPDB'deki detay sayfasına bağlantı verir.
 - Birden fazla IP içeren bir log satırını ya da tabloyu seçerseniz hepsi tek seferde sorgulanır (toplu sorgu).
-- Sonuçlar notunuzla birlikte Excel'e kopyalanır; tüm sorgular yerel geçmişte birikir ve vardiya sonunda toplu aktarılabilir.
+- Sonuçlar notunuzla birlikte Excel'e kopyalanır. Yalnızca seçtiğiniz IP'ler **Excel listesinde** birikir ve vardiya sonunda tek tıkla aktarılır.
 
 ## Kurulum
 
@@ -77,7 +77,7 @@ Klavye kısayolu: IP seçiliyken **Alt+Shift+A** (Mac'te **Option+Shift+A**). K�
 Birden fazla IP içeren bir metni (log satırı, tablo satırları) seçin; buton **N IP'yi sorgula** olarak çıkar.
 - En fazla 50 IP alınır. Özel adresler sorgulanmaz, kartta türleri yazılır.
 - 10'dan fazla genel IP varsa kart, günlük haktan kaç sorgu düşeceğini gösterip onay ister.
-- Sonuçlar listede skor rengiyle görünür. Bitince bir not seçip **Hepsini Excel'e kopyala** ile her IP için bir satır kopyalanır.
+- Sonuçlar listede skor rengiyle görünür. Excel'e girmesini istemediğiniz IP'lerin işaretini kaldırın; bir not seçip **Seçilenleri Excel'e kopyala** ile kopyalayın ya da **Listeye ekle** ile Excel listesine atın.
 - API anahtarı yoksa, geçersizse ya da günlük hak biterse sorgu durur.
 
 Seçimde tek bir IP geçiyorsa (ör. `src=8.8.8.8:443`) normal tekli kart açılır.
@@ -91,7 +91,8 @@ Kartta hazır notlardan birine tıklayın (varsayılanlar: “False positive”,
 | Tuş | İş |
 |---|---|
 | Alt+Shift+A (Mac: Option+Shift+A) | Seçili IP'yi ya da IP'leri sorgula |
-| C | Excel'e kopyala (toplu kartta hepsini) |
+| C | Excel'e kopyala (toplu kartta işaretlileri) |
+| L | Excel listesine ekle / listeden çıkar (toplu kartta işaretlileri ekler) |
 | O | AbuseIPDB'de aç |
 | R | Yenile |
 | 1–9 | Sıradaki hazır notu seç |
@@ -100,10 +101,16 @@ Kartta hazır notlardan birine tıklayın (varsayılanlar: “False positive”,
 
 Örnek akış, fareye dokunmadan: IP'yi seç → Alt+Shift+A → 2 → C.
 
+### Excel listesi: yalnızca istediğiniz IP'ler
+
+Her sorgu Excel'e girmez. Kayda geçmesini istediğiniz IP'de kartta **Listeye ekle**'ye (ya da L'ye) basın; o anki not da listeye yazılır. Toplu kartta yalnızca işaretli IP'ler eklenir. Geçmiş sayfasında eski sorguları seçip **Seçilenleri listeye ekle** de diyebilirsiniz.
+
+Vardiya sonunda araç çubuğu simgesi → **Listeyi Excel'e kopyala (N)**: listedeki IP'ler eklenme sırasıyla, Excel şablonunuza göre kopyalanır. **Listeyi düzenle** geçmiş sayfasını liste görünümünde açar; oradan IP çıkarabilir, notları düzeltebilir ve listeyi temizleyebilirsiniz. Liste siz temizleyene kadar (en fazla 500 IP) yalnızca bu tarayıcıda kalır; geçmiş kaydı kapalı olsa da çalışır.
+
 ### Sorgu geçmişi
 
 Başarılı her sorgu yalnızca bu tarayıcıda saklanır (varsayılan 7 gün, en fazla 500 IP, aynı IP tekrar sorgulanırsa en güncel hali kalır). Araç çubuğu simgesi → **Sorgu geçmişi** sayfasında:
-- Bugün / tümü filtresi ve arama (IP, ISP, ülke, not)
+- Bugün / tümü / Excel listesi görünümü ve arama (IP, ISP, ülke, not)
 - Seçilenleri ya da görünenleri Excel şablonunuzla tek seferde kopyalama
 - CSV indirme (Excel'in Türkçe karakterleri doğru açması için UTF-8 BOM ve noktalı virgül)
 - Notları sonradan düzenleme, seçilenleri silme, geçmişi temizleme
@@ -131,9 +138,33 @@ Sütunları kendi tablonuza göre ayarlar sayfasındaki **Excel kopyalama şablo
 - Alan ekleyip çıkarın, ↑ ↓ ile sıralayın, başlıkları yeniden adlandırın.
 - Tablonuzdaki “Analist”, “Ticket No” gibi sütunlar için **özel sütun** ekleyin. Sabit bir değer (ör. adınız) yazabilir ya da boş bırakabilirsiniz.
 - **Başlık satırını kopyala** ile yeni bir tabloya başlıkları tek seferde yapıştırın.
+- Özel sütunda **alias** kullanarak birden fazla değeri tek hücrede birleştirin (aşağıya bakın).
 - Boş değerlerin nasıl yazılacağını (boş, “Bilinmiyor”, “-”) ve ayırıcıyı (Excel için sekme, CSV için noktalı virgül) seçin.
 
-Kullanılabilen alanlar: sorgu zamanı, IP, IP (defang, ör. `203[.]0[.]113[.]45`), abuse skoru, risk seviyesi, rapor sayısı, kaynak sayısı, son rapor, ülke, ülke kodu, ISP, kullanım türü, alan adı, hostname, Tor, beyaz liste, rapor dönemi, AbuseIPDB bağlantısı, not.
+#### Alias'lar
+
+AbuseIPDB yanıtındaki her alanın ve eklentinin ürettiği değerlerin kısa bir adı vardır. Özel sütunun değerine bunları süslü parantezle yazın; kopyalarken gerçek değerle değişir:
+
+```
+{ip} | Skor {score} | {country_name} | {isp}   →   203.0.113.45 | Skor 92 | Hollanda | Example Hosting B.V.
+```
+
+| Alias | Değer | Alias | Değer |
+|---|---|---|---|
+| `{queried_at}` | Sorgu zamanı | `{country_name}` | Ülke adı |
+| `{date}` / `{time}` | Sorgu tarihi / saati | `{country}` | Ülke kodu |
+| `{ip}` | IP | `{isp}` | ISP |
+| `{ip_defanged}` | `203[.]0[.]113[.]45` | `{usage_type}` | Kullanım türü |
+| `{ip_version}` | 4 ya da 6 | `{domain}` | Alan adı |
+| `{score}` | Abuse skoru | `{hostnames}` | Hostname'ler |
+| `{risk}` | Yüksek / Orta / Düşük / Skor 0 | `{tor}` | Tor (Evet/Hayır) |
+| `{reports}` | Rapor sayısı | `{whitelisted}` | Beyaz liste |
+| `{users}` | Kaynak sayısı | `{public}` | Genel IP |
+| `{last_reported}` | Son rapor zamanı | `{period}` | Rapor dönemi (gün) |
+| `{last_reported_date}` | Son rapor tarihi | `{link}` | AbuseIPDB bağlantısı |
+| | | `{note}` | Not |
+
+Ayarlar sayfasındaki alias tablosunda her birinin örnek değeri görünür; bir alias'a tıklayınca son seçtiğiniz özel sütuna eklenir. Büyük/küçük harf fark etmez. Tanınmayan bir alias (yazım hatası) olduğu gibi yazılır ve ayarlar sayfası uyarır. Aynı alanlar özel sütun olmadan **Alan ekle** ile ayrı sütun olarak da eklenebilir.
 
 Tarihler `16.10.2026 09:41` biçimindedir. `=`, `+`, `-` ya da `@` ile başlayan metinlerin başına Excel'in formül olarak çalıştırmaması için `'` eklenir. Kopyalama tamamen tarayıcınızda yapılır; hiçbir yere veri gönderilmez.
 

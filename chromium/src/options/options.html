@@ -74,6 +74,17 @@
           <option value="semicolon">Noktalı virgül (CSV dosyası için)</option>
         </select>
       </div>
+      <details class="alias-help" id="alias-help">
+        <summary>Alias'lar: özel sütunda birden fazla değeri birleştirin</summary>
+        <p class="hint small">
+          Özel sütunun değerine <code>{ip} | Skor {score} | {country_name}</code> gibi bir metin yazın; her alias sorgu sonucundaki
+          değerle değişir. Bir alias'a tıklarsanız son tıkladığınız özel sütuna eklenir. Boş değerler yukarıdaki “Boş değerler” ayarına göre yazılır.
+        </p>
+        <table class="alias-table">
+          <thead><tr><th>Alias</th><th>Alan</th><th>Örnek</th></tr></thead>
+          <tbody id="alias-list"></tbody>
+        </table>
+      </details>
       <label for="quick-notes" class="block-label">Hazır notlar (her satıra bir not, en fazla 10)</label>
       <textarea id="quick-notes" rows="4" spellcheck="false"></textarea>
       <p class="hint small">Kartta tek tıkla seçilir ve “Not” sütununa yazılır. Not sütunu şablonda yoksa yukarıdan “Not” alanını ekleyin.</p>
