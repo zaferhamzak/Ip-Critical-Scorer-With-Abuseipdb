@@ -2,7 +2,7 @@
 
 Bu belge eklentinin her parçasının ne yaptığını ve nasıl çalıştığını anlatır: kullanıcı akışları, ekranlar, veri saklama, gizlilik, iç mimari, sınırlar, test ve yayın süreci. Kısa kurulum ve kullanım için depo kökündeki `README.md` yeterlidir; bu belge “neden ve nasıl” sorularının cevabıdır.
 
-Belge 0.7.0 sürümünü anlatır.
+Belge 0.7.1 sürümünü anlatır.
 
 ---
 
