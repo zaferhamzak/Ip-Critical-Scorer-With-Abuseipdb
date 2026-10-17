@@ -3,6 +3,7 @@ import {
   ALL_SITES_PATTERNS,
   CACHE_KEY_PREFIX,
   STORAGE_KEYS,
+  describeQuota,
   mergeSettings,
   normalizeCacheTtl,
   normalizeMaxAge,
@@ -217,15 +218,118 @@ guard(renderSettings)();
 initExportEditor().catch((error) => console.error(error));
 guard(renderSites)();
 
-// Highlight the section currently in view in the side menu.
+// Side menu follows the scroll position: the active section is the last one whose top
+// has passed under the header; at the very bottom the last section wins, so short
+// sections at the end can be selected too.
 const tocLinks = [...document.querySelectorAll(".toc a")];
-const sectionObserver = new IntersectionObserver((entries) => {
-  for (const entry of entries) {
-    if (!entry.isIntersecting) continue;
-    for (const a of tocLinks) a.classList.toggle("active", a.getAttribute("href") === `#${entry.target.id}`);
-  }
-}, { rootMargin: "-90px 0px -60% 0px" });
-for (const a of tocLinks) {
-  const target = document.querySelector(a.getAttribute("href"));
-  if (target) sectionObserver.observe(target);
+const tocSections = tocLinks.map((a) => document.querySelector(a.getAttribute("href")));
+let pinnedSection = null; // set by a menu click until the user scrolls
+
+const narrowLayout = window.matchMedia("(max-width: 900px)");
+
+// Distance from the viewport top that counts as "reading this section": below the
+// sticky header (and the sticky horizontal menu on narrow screens).
+function headerOffset() {
+  const header = document.querySelector(".topbar").getBoundingClientRect().height;
+  const menu = narrowLayout.matches ? document.querySelector(".toc").getBoundingClientRect().height : 0;
+  return header + menu + 24;
 }
+
+function setActive(index) {
+  tocLinks.forEach((a, i) => {
+    const on = i === index;
+    a.classList.toggle("active", on);
+    if (on) a.setAttribute("aria-current", "true");
+    else a.removeAttribute("aria-current");
+    tocSections[i]?.classList.toggle("active", on);
+  });
+  const link = tocLinks[index];
+  if (!link) return;
+  const fill = $("toc-fill");
+  if (fill) fill.style.height = `${Math.max(0, link.offsetTop + link.offsetHeight / 2 - 4)}px`;
+  if (narrowLayout.matches) {
+    // Keep the active chip visible in the horizontal menu without moving the page.
+    const toc = link.parentElement;
+    const left = link.offsetLeft - (toc.clientWidth - link.offsetWidth) / 2;
+    toc.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
+  }
+}
+
+function syncActive() {
+  if (pinnedSection !== null) return setActive(pinnedSection);
+  const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+  if (atBottom) return setActive(tocSections.length - 1);
+  const line = headerOffset();
+  let index = 0;
+  tocSections.forEach((section, i) => {
+    if (section && section.getBoundingClientRect().top - line <= 1) index = i;
+  });
+  setActive(index);
+}
+
+let scrollFrame = 0;
+let pinnedY = null; // scroll position once the click's smooth scroll has settled
+
+function releasePin() {
+  if (pinnedSection === null) return;
+  pinnedSection = null;
+  pinnedY = null;
+  syncActive();
+}
+
+window.addEventListener("scroll", () => {
+  // Any later movement away from where the click landed means the user scrolls again.
+  if (pinnedSection !== null && pinnedY !== null && Math.abs(window.scrollY - pinnedY) > 4) releasePin();
+  if (scrollFrame) return;
+  scrollFrame = requestAnimationFrame(() => {
+    scrollFrame = 0;
+    syncActive();
+  });
+}, { passive: true });
+window.addEventListener("scrollend", () => {
+  if (pinnedSection !== null && pinnedY === null) pinnedY = window.scrollY;
+});
+window.addEventListener("resize", syncActive);
+// Input during the smooth scroll itself also hands control back.
+for (const type of ["wheel", "touchmove"]) window.addEventListener(type, releasePin, { passive: true });
+
+// A menu click keeps its section selected even when the page cannot scroll that far
+// (short sections near the end).
+tocLinks.forEach((a, i) => {
+  a.addEventListener("click", () => {
+    pinnedSection = i;
+    pinnedY = null;
+    setActive(i);
+    // No scroll happens when the page is already there; start watching from here.
+    setTimeout(() => {
+      if (pinnedSection === i && pinnedY === null) pinnedY = window.scrollY;
+    }, 1200);
+  });
+});
+// Sections grow after async rendering (sites, template), so re-sync once things settle.
+new ResizeObserver(() => syncActive()).observe(document.querySelector("main"));
+syncActive();
+
+// Header status chips mirror the API key state and the stored daily quota.
+const keyStatus = $("api-status");
+function syncKeyChip() {
+  const ok = keyStatus.dataset.state === "ok";
+  $("top-key").textContent = ok ? "Anahtar ✓" : "Anahtar yok";
+  $("top-key").dataset.state = ok ? "ok" : "missing";
+}
+new MutationObserver(syncKeyChip).observe(keyStatus, { attributes: true, childList: true, characterData: true, subtree: true });
+syncKeyChip();
+
+async function renderQuotaChip() {
+  const stored = await ext.storage.local.get(STORAGE_KEYS.quota);
+  const quota = describeQuota(stored[STORAGE_KEYS.quota]);
+  const chip = $("top-quota");
+  chip.hidden = !quota;
+  if (!quota) return;
+  chip.textContent = quota.text.replace("Kalan hak: ", "Kalan ");
+  chip.dataset.state = quota.low ? "low" : "";
+}
+renderQuotaChip().catch(() => {});
+ext.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && STORAGE_KEYS.quota in changes) renderQuotaChip().catch(() => {});
+});

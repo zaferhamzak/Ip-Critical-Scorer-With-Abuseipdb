@@ -29,8 +29,14 @@ function setStatus(text) {
   $("export-status").textContent = text;
 }
 
+function setDirty(value) {
+  dirty = value;
+  // The save bar follows the viewport only while there is something to save.
+  document.querySelector(".action-bar")?.classList.toggle("dirty", value);
+}
+
 function markDirty() {
-  dirty = true;
+  setDirty(true);
   const unknown = [...new Set(template.columns.flatMap((c) => (c.kind === "custom" ? tools.unknownAliases(c.value) : [])))];
   setStatus(unknown.length
     ? `Kaydedilmemiş değişiklik var. Tanınmayan alias: ${unknown.map((a) => `{${a}}`).join(", ")} (olduğu gibi yazılır).`
@@ -184,7 +190,7 @@ async function save() {
   const quickNotes = quickNotesFromInput();
   await ext.storage.local.set({ [STORAGE_KEYS.exportTemplate]: template, [STORAGE_KEYS.quickNotes]: quickNotes });
   $("quick-notes").value = quickNotes.join("\n");
-  dirty = false;
+  setDirty(false);
   renderAll();
   setStatus("Şablon kaydedildi.");
 }
