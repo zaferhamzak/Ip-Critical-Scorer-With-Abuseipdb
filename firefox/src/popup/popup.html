@@ -8,54 +8,77 @@
   <script src="../shared/export.js"></script>
   <script type="module" src="popup.js"></script>
 </head>
-<body>
-  <main>
-    <h1>IP Critical Scorer</h1>
-
-    <section aria-labelledby="api-title">
-      <h2 id="api-title">API anahtarı</h2>
-      <p>Durum: <strong id="api-status">yükleniyor…</strong></p>
-      <form id="api-form" autocomplete="off">
-        <label for="api-key">AbuseIPDB API anahtarı</label>
-        <input id="api-key" type="password" spellcheck="false" autocomplete="off">
-        <label class="inline"><input id="api-reveal" type="checkbox"> Yazarken göster</label>
-        <div class="row">
-          <button type="submit">Kaydet</button>
-          <button type="button" id="api-remove" class="secondary">Sil</button>
-        </div>
-      </form>
-      <p class="hint">Anahtar isteğe bağlıdır; yalnızca bu tarayıcıda saklanır ve yalnızca <code>api.abuseipdb.com</code> adresine gönderilir.</p>
-    </section>
-
-    <p id="quota-status" class="hint quota-line" hidden></p>
-
-    <section aria-labelledby="site-title">
-      <h2 id="site-title">Bu site</h2>
-      <p id="site-status">yükleniyor…</p>
-      <div class="row">
-        <button type="button" id="site-enable" hidden>Bu sitede etkinleştir</button>
-      </div>
-    </section>
-
-    <section aria-labelledby="list-title" id="list-section" hidden>
-      <h2 id="list-title">Excel listesi</h2>
-      <p id="list-status" class="hint"></p>
-      <div class="row">
-        <button type="button" id="list-copy">Listeyi Excel'e kopyala</button>
-        <button type="button" id="list-open" class="secondary">Listeyi düzenle</button>
-      </div>
-    </section>
-
-    <section aria-labelledby="version-title">
-      <h2 id="version-title">Sürüm</h2>
-      <p id="version-status">yükleniyor…</p>
-    </section>
-
-    <div class="row">
-      <button type="button" id="open-history">Sorgu geçmişi</button>
-      <button type="button" id="open-options" class="secondary">Tüm ayarlar</button>
+<body class="popup-page">
+  <header class="pop-head">
+    <img src="../../icons/icon-48.png" alt="" width="28" height="28">
+    <div class="brand">
+      <p class="eyebrow">AbuseIPDB</p>
+      <h1>IP Critical Scorer</h1>
     </div>
-    <p id="message" role="status" aria-live="polite"></p>
+    <span class="chip mono" id="version-status" title="Chrome Web Store tarafından otomatik güncellenir">v–</span>
+  </header>
+
+  <main>
+    <div class="status-grid">
+      <div class="stat">
+        <p class="eyebrow">Anahtar</p>
+        <strong id="api-status" class="stat-value">yükleniyor…</strong>
+      </div>
+      <div class="stat" id="quota-box">
+        <p class="eyebrow">Kalan hak</p>
+        <strong id="quota-status" class="stat-value mono">—</strong>
+        <span class="meter" aria-hidden="true"><span id="quota-meter"></span></span>
+      </div>
+    </div>
+
+    <section class="pop-card" aria-labelledby="site-title">
+      <p class="eyebrow" id="site-title">Bu site</p>
+      <div class="site-line">
+        <span class="dot" id="site-dot" data-state="unknown" aria-hidden="true"></span>
+        <div class="site-text">
+          <strong id="site-host" class="mono">—</strong>
+          <span id="site-status">yükleniyor…</span>
+        </div>
+      </div>
+      <button type="button" id="site-enable" class="block" hidden>Bu sitede etkinleştir</button>
+    </section>
+
+    <section class="pop-card list-card" aria-labelledby="list-title" id="list-section" hidden>
+      <div class="list-head">
+        <div>
+          <p class="eyebrow" id="list-title">Excel listesi</p>
+          <p class="count"><strong id="list-count" class="mono">0</strong> <span>IP seçili</span></p>
+        </div>
+        <button type="button" id="list-open" class="secondary small">Düzenle</button>
+      </div>
+      <p id="list-status" class="hint small"></p>
+      <button type="button" id="list-copy" class="block">Listeyi Excel'e kopyala</button>
+    </section>
+
+    <section class="pop-card" aria-labelledby="api-title">
+      <details id="api-details">
+        <summary><span class="eyebrow" id="api-title">API anahtarı</span><span class="summary-action">Değiştir</span></summary>
+        <form id="api-form" autocomplete="off">
+          <label class="sr-only" for="api-key">AbuseIPDB API anahtarı</label>
+          <div class="inline-control">
+            <input id="api-key" type="password" spellcheck="false" autocomplete="off">
+            <button type="submit">Kaydet</button>
+          </div>
+          <div class="form-foot">
+            <label class="check"><input id="api-reveal" type="checkbox"> Göster</label>
+            <button type="button" id="api-remove" class="link-danger">Anahtarı sil</button>
+          </div>
+        </form>
+        <p class="hint small">Yalnızca bu tarayıcıda saklanır ve yalnızca <code>api.abuseipdb.com</code> adresine gönderilir.</p>
+      </details>
+    </section>
   </main>
+
+  <footer class="pop-foot">
+    <button type="button" id="open-history" class="secondary">Sorgu geçmişi</button>
+    <button type="button" id="open-options" class="secondary">Ayarlar</button>
+  </footer>
+
+  <p id="message" class="toast" role="status" aria-live="polite"></p>
 </body>
 </html>

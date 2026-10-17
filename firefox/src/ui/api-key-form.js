@@ -12,15 +12,18 @@ import { STORAGE_KEYS, normalizeApiKey } from "../shared/settings.js";
  * @param {HTMLButtonElement} els.remove
  * @param {HTMLElement} els.status
  * @param {(text: string, kind?: "ok"|"error") => void} els.notify
+ * @param {{ok: string, missing: string}} [els.labels]  status texts (the popup uses short ones)
+ * @param {(hasKey: boolean) => void} [els.onChange]
  */
-export function bindApiKeyForm({ form, input, reveal, remove, status, notify }) {
+export function bindApiKeyForm({ form, input, reveal, remove, status, notify, labels, onChange }) {
   async function render() {
     const stored = await ext.storage.local.get(STORAGE_KEYS.apiKey);
     const hasKey = normalizeApiKey(stored?.[STORAGE_KEYS.apiKey]) !== null;
-    status.textContent = hasKey ? "Anahtar kayıtlı" : "Anahtar yok – kart yalnızca detay bağlantısı gösterir";
+    status.textContent = hasKey ? labels?.ok ?? "Anahtar kayıtlı" : labels?.missing ?? "Anahtar yok – kart yalnızca detay bağlantısı gösterir";
     status.dataset.state = hasKey ? "ok" : "missing";
     remove.disabled = !hasKey;
     input.placeholder = hasKey ? "Yeni anahtar girerek değiştirin" : "AbuseIPDB API anahtarınız";
+    onChange?.(hasKey);
   }
 
   async function save(event) {
