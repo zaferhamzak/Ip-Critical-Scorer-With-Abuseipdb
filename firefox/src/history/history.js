@@ -14,10 +14,17 @@ let listEntries = [];
 let historyDays = 7;
 let clearArmed = false;
 
+let messageTimer = null;
 function message(text, kind = "ok") {
-  $("message").textContent = text;
-  $("message").className = kind;
+  const el = $("message");
+  el.textContent = text;
+  el.className = `toast show ${kind}`;
+  clearTimeout(messageTimer);
+  messageTimer = setTimeout(() => el.classList.remove("show"), kind === "error" ? 6000 : 3500);
 }
+
+// View: "today" | "all" | "list" (the Excel list).
+let range = location.hash === "#list" ? "list" : "today";
 
 function severity(score) {
   if (typeof score !== "number") return "none";
@@ -33,11 +40,11 @@ function startOfToday() {
 }
 
 function listView() {
-  return $("range").value === "list";
+  return range === "list";
 }
 
 function visibleEntries() {
-  const from = $("range").value === "today" ? startOfToday() : 0;
+  const from = range === "today" ? startOfToday() : 0;
   const q = $("search").value.trim().toLocaleLowerCase("tr");
   return entries.filter((e) => {
     if (e.at < from) return false;
@@ -64,7 +71,7 @@ function render() {
   $("delete-selected").textContent = inList ? "Seçilenleri listeden çıkar" : "Seçilenleri sil";
   $("clear-all").textContent = inList ? "Listeyi temizle" : "Geçmişi temizle";
   $("list-hint").hidden = !inList;
-  $("empty").textContent = inList
+  $("empty-text").textContent = inList
     ? "Excel listesi boş. Kartta “Listeye ekle” ya da burada geçmişten “Seçilenleri listeye ekle” ile IP ekleyin."
     : "Bu aralıkta kayıt yok. Bir IP sorguladığınızda burada görünür.";
   const rows = visibleEntries();
@@ -104,7 +111,7 @@ function render() {
 
     const score = e.data.abuseConfidenceScore;
     const chip = document.createElement("span");
-    chip.className = `chip ${severity(score)}`;
+    chip.className = `score ${severity(score)}`;
     chip.textContent = typeof score === "number" ? String(score) : "?";
     const tdScore = cell();
     tdScore.append(chip);
@@ -176,11 +183,18 @@ async function load() {
   historyDays = settings.historyDays;
   historyEntries = pruneHistory(stored[STORAGE_KEYS.history], historyDays, Date.now());
   listEntries = sanitizeList(stored[STORAGE_KEYS.exportList]);
-  const listOption = $("range").querySelector('option[value="list"]');
-  listOption.textContent = `Excel listesi (${listEntries.length})`;
+  const today = historyEntries.filter((e) => e.at >= startOfToday()).length;
+  const high = historyEntries.filter((e) => typeof e.data.abuseConfidenceScore === "number" && e.data.abuseConfidenceScore >= 75).length;
+  $("stat-total").textContent = String(historyEntries.length);
+  $("stat-today").textContent = String(today);
+  $("stat-high").textContent = String(high);
+  $("stat-list").textContent = String(listEntries.length);
+  $("seg-today").textContent = String(today);
+  $("seg-all").textContent = String(historyEntries.length);
+  $("seg-list").textContent = String(listEntries.length);
   $("retention").textContent = settings.historyEnabled
-    ? `Son ${historyDays} günün sorguları, yalnızca bu tarayıcıda saklanır. Süreyi ayarlardan değiştirebilirsiniz.`
-    : "Geçmiş kaydı ayarlardan kapatılmış; yeni sorgular kaydedilmiyor.";
+    ? `son ${historyDays} gün, yalnızca bu tarayıcıda`
+    : "geçmiş kaydı ayarlardan kapalı";
   render();
 }
 
@@ -191,12 +205,21 @@ function guard(fn) {
   });
 }
 
-$("range").addEventListener("change", () => {
-  selected.clear();
-  history.replaceState(null, "", listView() ? "#list" : location.pathname);
-  render();
-});
-if (location.hash === "#list") $("range").value = "list";
+function setRange(value) {
+  range = value;
+  for (const b of $("range").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.value === value));
+}
+for (const b of $("range").querySelectorAll("button")) {
+  b.addEventListener("click", () => {
+    if (b.dataset.value === range) return;
+    setRange(b.dataset.value);
+    selected.clear();
+    history.replaceState(null, "", listView() ? "#list" : location.pathname);
+    render();
+  });
+}
+setRange(range);
+$("open-options").addEventListener("click", () => ext.runtime.openOptionsPage());
 $("search").addEventListener("input", render);
 $("select-all").addEventListener("change", (e) => {
   for (const entry of visibleEntries()) {

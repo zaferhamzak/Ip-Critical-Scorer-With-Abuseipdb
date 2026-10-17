@@ -9,51 +9,79 @@
   <script src="../shared/export.js"></script>
   <script type="module" src="history.js"></script>
 </head>
-<body>
-  <main class="wide">
-    <h1>Sorgu geçmişi</h1>
-    <p class="hint" id="retention"></p>
-    <p class="hint" id="list-hint" hidden>Excel listesi yalnızca sizin eklediğiniz IP'leri tutar (kartta “Listeye ekle” ya da L). Siz temizleyene kadar bu tarayıcıda kalır.</p>
+<body class="options-page history-page">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <img src="../../icons/icon-48.png" alt="" width="30" height="30">
+      <div class="brand">
+        <p class="eyebrow">Sorgu geçmişi</p>
+        <h1>IP Critical Scorer</h1>
+      </div>
+      <button type="button" id="open-options" class="secondary">Ayarlar</button>
+    </div>
+  </header>
 
-    <div class="toolbar">
-      <label class="sr-only" for="range">Zaman aralığı</label>
-      <select id="range">
-        <option value="today">Bugün</option>
-        <option value="all">Tümü</option>
-        <option value="list">Excel listesi</option>
-      </select>
-      <label class="sr-only" for="search">Ara</label>
-      <input id="search" type="search" placeholder="IP, ISP, ülke ya da not ara" autocomplete="off">
-      <span id="count" class="count"></span>
+  <main class="history-main">
+    <div class="stats" aria-label="Özet">
+      <div class="stat-tile"><p class="eyebrow">Toplam</p><strong id="stat-total" class="mono">0</strong><span id="retention" class="hint small"></span></div>
+      <div class="stat-tile"><p class="eyebrow">Bugün</p><strong id="stat-today" class="mono">0</strong><span class="hint small">bugün sorgulanan IP</span></div>
+      <div class="stat-tile high"><p class="eyebrow">Yüksek risk</p><strong id="stat-high" class="mono">0</strong><span class="hint small">skor 75 ve üstü</span></div>
+      <div class="stat-tile list"><p class="eyebrow">Excel listesi</p><strong id="stat-list" class="mono">0</strong><span class="hint small">Excel'e girecek IP</span></div>
     </div>
 
-    <div class="toolbar">
-      <button type="button" id="copy-selected">Seçilenleri Excel'e kopyala</button>
-      <button type="button" id="copy-visible" class="secondary">Görünenleri Excel'e kopyala</button>
-      <button type="button" id="list-add" class="secondary">Seçilenleri listeye ekle</button>
-      <button type="button" id="download-csv" class="secondary">CSV indir</button>
-      <button type="button" id="delete-selected" class="secondary">Seçilenleri sil</button>
-      <button type="button" id="clear-all" class="secondary danger">Geçmişi temizle</button>
-    </div>
-    <p id="message" role="status" aria-live="polite"></p>
+    <section class="history-card" aria-label="Kayıtlar">
+      <div class="history-toolbar">
+        <div class="segmented" id="range" role="group" aria-label="Görünüm">
+          <button type="button" data-value="today" aria-pressed="true">Bugün <span class="seg-count" id="seg-today"></span></button>
+          <button type="button" data-value="all" aria-pressed="false">Tümü <span class="seg-count" id="seg-all"></span></button>
+          <button type="button" data-value="list" aria-pressed="false">Excel listesi <span class="seg-count" id="seg-list"></span></button>
+        </div>
+        <label class="search">
+          <span class="sr-only">Ara</span>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+          <input id="search" type="search" placeholder="IP, ISP, ülke ya da not ara" autocomplete="off">
+        </label>
+        <span id="count" class="count mono"></span>
+      </div>
 
-    <div class="table-wrap">
-      <table id="history">
-        <thead>
-          <tr>
-            <th><input type="checkbox" id="select-all" aria-label="Görünenlerin hepsini seç"></th>
-            <th>Zaman</th>
-            <th>IP</th>
-            <th>Skor</th>
-            <th>Ülke</th>
-            <th>ISP</th>
-            <th>Not</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-    <p id="empty" class="hint" hidden>Bu aralıkta kayıt yok. Bir IP sorguladığınızda burada görünür.</p>
+      <p class="hint small list-hint" id="list-hint" hidden>Excel listesi yalnızca sizin eklediğiniz IP'leri tutar (kartta “Listeye ekle” ya da L). Siz temizleyene kadar bu tarayıcıda kalır.</p>
+
+      <div class="action-row">
+        <div class="action-group">
+          <button type="button" id="copy-selected">Seçilenleri Excel'e kopyala</button>
+          <button type="button" id="copy-visible" class="secondary">Görünenleri kopyala</button>
+          <button type="button" id="download-csv" class="secondary">CSV indir</button>
+        </div>
+        <div class="action-group">
+          <button type="button" id="list-add" class="secondary">+ Listeye ekle</button>
+          <button type="button" id="delete-selected" class="secondary">Seçilenleri sil</button>
+          <button type="button" id="clear-all" class="secondary danger">Geçmişi temizle</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="history">
+          <thead>
+            <tr>
+              <th class="col-check"><input type="checkbox" id="select-all" aria-label="Görünenlerin hepsini seç"></th>
+              <th>Zaman</th>
+              <th>IP</th>
+              <th>Skor</th>
+              <th>Ülke</th>
+              <th>ISP</th>
+              <th>Not</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div id="empty" class="empty-state" hidden>
+          <p class="eyebrow">Kayıt yok</p>
+          <p id="empty-text">Bu aralıkta kayıt yok. Bir IP sorguladığınızda burada görünür.</p>
+        </div>
+      </div>
+    </section>
   </main>
+
+  <p id="message" class="toast" role="status" aria-live="polite"></p>
 </body>
 </html>
