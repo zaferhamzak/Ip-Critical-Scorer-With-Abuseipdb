@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "IP Critical Scorer",
   "short_name": "IP Scorer",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "description": "Sayfada seçtiğiniz IP adresinin AbuseIPDB itibar skorunu aynı sayfada küçük bir kartta gösterir.",
   "icons": {
     "16": "icons/icon-16.png",
