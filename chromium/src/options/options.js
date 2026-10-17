@@ -16,11 +16,17 @@ import { buildSettingsFile, parseSettingsFile } from "../shared/settings.js";
 
 const $ = (id) => document.getElementById(id);
 
+// Toast at the bottom of the window, so feedback is visible wherever the button was.
+let messageTimer = null;
 function showMessage(text, kind = "ok") {
   const el = $("message");
   el.textContent = text;
-  el.className = kind;
+  el.className = `toast show ${kind}`;
+  clearTimeout(messageTimer);
+  messageTimer = setTimeout(() => el.classList.remove("show"), kind === "error" ? 7000 : 4000);
 }
+
+$("version").textContent = `v${ext.runtime.getManifest().version}`;
 
 async function renderSettings() {
   const stored = await ext.storage.local.get([
@@ -45,6 +51,7 @@ async function renderSites() {
   const patterns = pagePatternsFromGranted(origins);
   if (patterns.length === 0) {
     const li = document.createElement("li");
+    li.className = "empty";
     li.textContent = "Henüz site izni yok; eklenti hiçbir sayfada çalışmıyor.";
     list.append(li);
   }
@@ -209,3 +216,16 @@ $("settings-grant-sites").addEventListener("click", () => {
 guard(renderSettings)();
 initExportEditor().catch((error) => console.error(error));
 guard(renderSites)();
+
+// Highlight the section currently in view in the side menu.
+const tocLinks = [...document.querySelectorAll(".toc a")];
+const sectionObserver = new IntersectionObserver((entries) => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    for (const a of tocLinks) a.classList.toggle("active", a.getAttribute("href") === `#${entry.target.id}`);
+  }
+}, { rootMargin: "-90px 0px -60% 0px" });
+for (const a of tocLinks) {
+  const target = document.querySelector(a.getAttribute("href"));
+  if (target) sectionObserver.observe(target);
+}

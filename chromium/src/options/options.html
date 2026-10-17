@@ -8,161 +8,230 @@
   <script src="../shared/export.js"></script>
   <script type="module" src="options.js"></script>
 </head>
-<body>
-  <main>
-    <h1>IP Critical Scorer</h1>
-
-    <section aria-labelledby="api-title">
-      <h2 id="api-title">AbuseIPDB API anahtarı (isteğe bağlı)</h2>
-      <p class="hint">
-        Anahtar yoksa kart yalnızca IP doğrulamasını ve AbuseIPDB detay sayfası bağlantısını gösterir.
-        Ücretsiz bir AbuseIPDB hesabıyla alınan anahtar (günlük 1.000 sorgu) girilirse skor ve rapor bilgileri
-        resmi API üzerinden gösterilir. Anahtarı AbuseIPDB hesabınızda <em>Account → API</em> bölümünden oluşturabilirsiniz.
-        Anahtar yalnızca bu tarayıcıda saklanır ve yalnızca <code>api.abuseipdb.com</code> adresine gönderilir.
-      </p>
-      <p>Durum: <strong id="api-status">yükleniyor…</strong></p>
-      <form id="api-form" autocomplete="off">
-        <label for="api-key">API anahtarı</label>
-        <input id="api-key" type="password" spellcheck="false" autocomplete="off">
-        <label class="inline"><input id="api-reveal" type="checkbox"> Yazarken göster</label>
-        <div class="row">
-          <button type="submit">Kaydet</button>
-          <button type="button" id="api-remove" class="secondary">Anahtarı sil</button>
-        </div>
-      </form>
-    </section>
-
-    <section aria-labelledby="period-title">
-      <h2 id="period-title">Rapor dönemi</h2>
-      <p class="hint">
-        Kartta gösterilen rapor sayısı ve son rapor tarihi bu dönemi kapsar. AbuseIPDB API en fazla
-        365 gün geriye gitmeye izin verir; daha eski raporlar için AbuseIPDB sayfasını açın.
-      </p>
-      <form id="period-form">
-        <label for="max-age">Süre (gün, 1–365)</label>
-        <input id="max-age" type="number" min="1" max="365" step="1" required>
-        <div class="row">
-          <button type="submit">Kaydet</button>
-        </div>
-      </form>
-    </section>
-
-    <section aria-labelledby="export-title">
-      <h2 id="export-title">Excel kopyalama şablonu</h2>
-      <p class="hint">
-        Karttaki <strong>Excel'e kopyala</strong> butonu sonucu bu sütun sırasıyla tek satır olarak kopyalar.
-        Excel'de satırın ilk hücresine yapıştırınca her alan kendi sütununa düşer. Kendi tablonuzdaki
-        “Analist”, “Ticket No” gibi sütunlar için özel sütun ekleyin; değerini boş bırakırsanız o hücre boş kalır.
-      </p>
-      <ol id="export-columns" class="export-columns"></ol>
-      <div class="row">
-        <label class="sr-only" for="export-field">Eklenecek alan</label>
-        <select id="export-field"></select>
-        <button type="button" id="export-add-field" class="secondary">Alan ekle</button>
-        <button type="button" id="export-add-custom" class="secondary">Özel sütun ekle</button>
+<body class="options-page">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <img src="../../icons/icon-48.png" alt="" width="32" height="32">
+      <div class="brand">
+        <h1>IP Critical Scorer</h1>
+        <p>Ayarlar · <span id="version">v–</span></p>
       </div>
-      <div class="export-options">
-        <label for="export-empty">Boş değerler</label>
-        <select id="export-empty">
-          <option value="blank">Boş hücre</option>
-          <option value="unknown">“Bilinmiyor” yaz</option>
-          <option value="dash">“-” yaz</option>
-        </select>
-        <label for="export-separator">Ayırıcı</label>
-        <select id="export-separator">
-          <option value="tab">Sekme (Excel'e yapıştırmak için)</option>
-          <option value="semicolon">Noktalı virgül (CSV dosyası için)</option>
-        </select>
-      </div>
-      <details class="alias-help" id="alias-help">
-        <summary>Alias'lar: özel sütunda birden fazla değeri birleştirin</summary>
+      <button type="button" id="history-open" class="secondary">Sorgu geçmişi</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Bölümler">
+      <a href="#sec-api">API anahtarı</a>
+      <a href="#sec-query">Sorgu ayarları</a>
+      <a href="#sec-export">Excel şablonu</a>
+      <a href="#sec-history">Geçmiş</a>
+      <a href="#sec-sites">Site erişimi</a>
+      <a href="#sec-share">Ayarları paylaş</a>
+    </nav>
+
+    <main>
+      <section id="sec-api" aria-labelledby="api-title">
+        <div class="section-head">
+          <div>
+            <h2 id="api-title">AbuseIPDB API anahtarı</h2>
+            <p class="hint">İsteğe bağlı. Anahtarla skor ve rapor bilgisi resmi API'den gelir; anahtar yoksa kart yalnızca AbuseIPDB bağlantısını gösterir.</p>
+          </div>
+          <strong id="api-status" class="pill">yükleniyor…</strong>
+        </div>
+        <form id="api-form" class="stack" autocomplete="off">
+          <label for="api-key">API anahtarı</label>
+          <div class="inline-control">
+            <input id="api-key" type="password" spellcheck="false" autocomplete="off">
+            <button type="submit">Kaydet</button>
+            <button type="button" id="api-remove" class="secondary">Sil</button>
+          </div>
+          <label class="check"><input id="api-reveal" type="checkbox"> Yazarken göster</label>
+        </form>
         <p class="hint small">
-          Özel sütunun değerine <code>{ip} | Skor {score} | {country_name}</code> gibi bir metin yazın; her alias sorgu sonucundaki
-          değerle değişir. Bir alias'a tıklarsanız son tıkladığınız özel sütuna eklenir. Boş değerler yukarıdaki “Boş değerler” ayarına göre yazılır.
+          Ücretsiz AbuseIPDB hesabında <em>Account → API</em> bölümünden oluşturulur (günde 1.000 sorgu).
+          Anahtar yalnızca bu tarayıcıda saklanır ve yalnızca <code>api.abuseipdb.com</code> adresine gönderilir.
         </p>
-        <table class="alias-table">
-          <thead><tr><th>Alias</th><th>Alan</th><th>Örnek</th></tr></thead>
-          <tbody id="alias-list"></tbody>
-        </table>
-      </details>
-      <label for="quick-notes" class="block-label">Hazır notlar (her satıra bir not, en fazla 10)</label>
-      <textarea id="quick-notes" rows="4" spellcheck="false"></textarea>
-      <p class="hint small">Kartta tek tıkla seçilir ve “Not” sütununa yazılır. Not sütunu şablonda yoksa yukarıdan “Not” alanını ekleyin.</p>
-      <h3 class="preview-title">Önizleme (örnek veri)</h3>
-      <div class="export-preview"><table id="export-preview"></table></div>
-      <div class="row">
-        <button type="button" id="export-save">Şablonu kaydet</button>
-        <button type="button" id="export-copy-header" class="secondary">Başlık satırını kopyala</button>
-        <button type="button" id="export-reset" class="secondary">Varsayılana dön</button>
-      </div>
-      <p id="export-status" class="hint" role="status" aria-live="polite"></p>
-    </section>
+      </section>
 
-    <section aria-labelledby="history-title">
-      <h2 id="history-title">Sorgu geçmişi</h2>
-      <p class="hint">
-        Başarılı sorgular ve eklediğiniz notlar yalnızca bu tarayıcıda saklanır. Geçmiş sayfasından
-        seçtiğiniz kayıtları tek seferde Excel'e kopyalayabilir ya da CSV olarak indirebilirsiniz.
-      </p>
-      <form id="history-form">
-        <label class="inline"><input id="history-enabled" type="checkbox"> Sorgu geçmişini kaydet</label>
-        <label class="inline"><input id="highlight-known" type="checkbox"> Daha önce sorgulanan IP'leri sayfalarda skor rengiyle işaretle</label>
-        <p class="hint small" id="highlight-note">Açıkken, izin verdiğiniz sitelerde sayfa metni yalnızca bu tarayıcıda IP aramak için taranır; yeni sorgu yapılmaz, hiçbir şey gönderilmez.</p>
-        <label for="history-days">Saklama süresi (gün, 1–90)</label>
-        <input id="history-days" type="number" min="1" max="90" step="1" required>
-        <div class="row">
-          <button type="submit">Kaydet</button>
-          <button type="button" id="history-open" class="secondary">Geçmişi aç</button>
+      <section id="sec-query" aria-labelledby="query-title">
+        <div class="section-head">
+          <div>
+            <h2 id="query-title">Sorgu ayarları</h2>
+            <p class="hint">Kartta gösterilen dönem ve aynı IP'nin tekrar sorgulanmadan bekleme süresi.</p>
+          </div>
         </div>
-      </form>
-    </section>
+        <form id="period-form" class="setting">
+          <div class="setting-text">
+            <label for="max-age">Rapor dönemi</label>
+            <p class="hint small">Rapor sayısı ve son rapor bu dönemi kapsar. API en fazla 365 gün geriye gider.</p>
+          </div>
+          <div class="setting-control">
+            <span class="unit-input"><input id="max-age" type="number" min="1" max="365" step="1" required><span>gün</span></span>
+            <button type="submit" class="secondary">Kaydet</button>
+          </div>
+        </form>
+        <form id="cache-form" class="setting">
+          <div class="setting-text">
+            <label for="cache-ttl">Önbellek süresi</label>
+            <p class="hint small">Bu süre içinde aynı IP için hak harcanmaz. Tarayıcı kapanınca silinir.</p>
+          </div>
+          <div class="setting-control">
+            <span class="unit-input"><input id="cache-ttl" type="number" min="1" max="1440" step="1" required><span>dk</span></span>
+            <button type="submit" class="secondary">Kaydet</button>
+            <button type="button" id="cache-clear" class="secondary">Temizle</button>
+          </div>
+        </form>
+      </section>
 
-    <section aria-labelledby="cache-title">
-      <h2 id="cache-title">Önbellek</h2>
-      <p class="hint">Aynı IP bu süre içinde tekrar sorgulanmaz. Önbellek tarayıcı kapanınca silinir.</p>
-      <form id="cache-form">
-        <label for="cache-ttl">Süre (dakika, 1–1440)</label>
-        <input id="cache-ttl" type="number" min="1" max="1440" step="1" required>
-        <div class="row">
-          <button type="submit">Kaydet</button>
-          <button type="button" id="cache-clear" class="secondary">Önbelleği temizle</button>
+      <section id="sec-export" aria-labelledby="export-title">
+        <div class="section-head">
+          <div>
+            <h2 id="export-title">Excel kopyalama şablonu</h2>
+            <p class="hint">
+              <strong>Excel'e kopyala</strong> ve <strong>Excel listesi</strong> sonuçları bu sütunlarla, sekmeyle ayrılmış satırlar olarak kopyalar.
+              Excel'de satırın ilk hücresine yapıştırınca her değer kendi sütununa düşer.
+            </p>
+          </div>
         </div>
-      </form>
-    </section>
 
-    <section aria-labelledby="sites-title">
-      <h2 id="sites-title">Site erişimi</h2>
-      <p class="hint">
-        Eklenti yalnızca izin verdiğiniz sitelerde IP seçimini izler. Sayfa içeriği veya URL hiçbir yere gönderilmez.
-      </p>
-      <ul id="site-list"></ul>
-      <form id="site-form">
-        <label for="site-input">Site ekle (ör. <code>siem.example.com</code> veya <code>https://*.example.com</code>)</label>
-        <input id="site-input" type="text" spellcheck="false" autocomplete="off">
-        <div class="row">
-          <button type="submit">Siteye izin ver</button>
-          <button type="button" id="site-all" class="secondary">Tüm sitelerde çalıştır</button>
+        <div class="subsection">
+          <h3>Önizleme <span class="muted">örnek veri</span></h3>
+          <div class="export-preview"><table id="export-preview"></table></div>
         </div>
-      </form>
-    </section>
 
-    <section aria-labelledby="share-title">
-      <h2 id="share-title">Ayarları paylaş</h2>
-      <p class="hint">
-        Excel şablonu, hazır notlar, süreler ve site listesi bir dosyaya kaydedilir; ekip arkadaşınız aynı dosyayı içe aktarır.
-        API anahtarı ve sorgu geçmişi dosyaya <strong>girmez</strong>.
-      </p>
-      <div class="row">
-        <button type="button" id="settings-export" class="secondary">Ayarları dışa aktar</button>
-        <button type="button" id="settings-import" class="secondary">Ayar dosyası içe aktar</button>
-        <input type="file" id="settings-file" accept="application/json,.json" hidden>
-      </div>
-      <div class="row">
-        <button type="button" id="settings-grant-sites" hidden></button>
-      </div>
-    </section>
+        <div class="subsection">
+          <h3>Sütunlar</h3>
+          <p class="hint small">Başlığı değiştirmek için yazın; boş bırakılırsa varsayılan başlık kullanılır. Özel sütunlar “Analist”, “Ticket No” gibi kendi alanlarınız içindir.</p>
+          <ol id="export-columns" class="export-columns"></ol>
+          <div class="add-bar">
+            <label class="sr-only" for="export-field">Eklenecek alan</label>
+            <select id="export-field"></select>
+            <button type="button" id="export-add-field" class="secondary">+ Alan ekle</button>
+            <button type="button" id="export-add-custom" class="secondary">+ Özel sütun</button>
+          </div>
+        </div>
 
-    <p id="message" role="status" aria-live="polite"></p>
-  </main>
+        <div class="subsection">
+          <h3>Alias'lar</h3>
+          <p class="hint small">
+            Özel sütunun değerine <code>{ip} | Skor {score} | {country_name}</code> gibi metin yazın; her alias sorgu sonucundaki değerle değişir.
+            Bir alias'a tıklayınca son tıkladığınız özel sütuna eklenir (yoksa yeni özel sütun açılır).
+          </p>
+          <details class="alias-help" id="alias-help">
+            <summary>Tüm alias'ları göster</summary>
+            <div id="alias-list" class="alias-grid"></div>
+          </details>
+        </div>
+
+        <div class="subsection">
+          <h3>Biçim</h3>
+          <div class="format-grid">
+            <label for="export-empty">Boş değerler</label>
+            <select id="export-empty">
+              <option value="blank">Boş hücre</option>
+              <option value="unknown">“Bilinmiyor” yaz</option>
+              <option value="dash">“-” yaz</option>
+            </select>
+            <label for="export-separator">Ayırıcı</label>
+            <select id="export-separator">
+              <option value="tab">Sekme (Excel'e yapıştırmak için)</option>
+              <option value="semicolon">Noktalı virgül (CSV dosyası için)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="subsection">
+          <h3><label for="quick-notes">Hazır notlar</label></h3>
+          <p class="hint small">Her satıra bir not, en fazla 10. Kartta tek tıkla (ya da 1–9) seçilir ve “Not” sütununa yazılır.</p>
+          <textarea id="quick-notes" rows="4" spellcheck="false"></textarea>
+        </div>
+
+        <div class="action-bar">
+          <p id="export-status" class="hint" role="status" aria-live="polite"></p>
+          <div class="action-buttons">
+            <button type="button" id="export-reset" class="secondary">Varsayılana dön</button>
+            <button type="button" id="export-copy-header" class="secondary">Başlık satırını kopyala</button>
+            <button type="button" id="export-save">Şablonu kaydet</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="sec-history" aria-labelledby="history-title">
+        <div class="section-head">
+          <div>
+            <h2 id="history-title">Sorgu geçmişi</h2>
+            <p class="hint">Başarılı sorgular ve notlar yalnızca bu tarayıcıda saklanır. Excel listesi bu ayardan bağımsızdır.</p>
+          </div>
+        </div>
+        <form id="history-form">
+          <label class="setting toggle">
+            <span class="setting-text">
+              <span class="label">Sorgu geçmişini kaydet</span>
+              <span class="hint small">Geçmiş sayfasından seçtiklerinizi Excel'e kopyalayabilir ya da CSV indirebilirsiniz.</span>
+            </span>
+            <input id="history-enabled" type="checkbox" class="switch">
+          </label>
+          <label class="setting toggle">
+            <span class="setting-text">
+              <span class="label">Bilinen IP'leri sayfada işaretle</span>
+              <span class="hint small" id="highlight-note">Daha önce sorgulanan IP'ler izin verilen sitelerde skor rengiyle altı çizili görünür. Sayfa metni yalnızca bu tarayıcıda taranır; yeni sorgu yapılmaz.</span>
+            </span>
+            <input id="highlight-known" type="checkbox" class="switch">
+          </label>
+          <div class="setting">
+            <div class="setting-text">
+              <label for="history-days">Saklama süresi</label>
+              <p class="hint small">1–90 gün. Daha eski kayıtlar kendiliğinden silinir.</p>
+            </div>
+            <div class="setting-control">
+              <span class="unit-input"><input id="history-days" type="number" min="1" max="90" step="1" required><span>gün</span></span>
+              <button type="submit" class="secondary">Kaydet</button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section id="sec-sites" aria-labelledby="sites-title">
+        <div class="section-head">
+          <div>
+            <h2 id="sites-title">Site erişimi</h2>
+            <p class="hint">Eklenti yalnızca izin verdiğiniz sitelerde IP seçimini izler. Sayfa içeriği veya URL hiçbir yere gönderilmez.</p>
+          </div>
+        </div>
+        <ul id="site-list" class="site-list"></ul>
+        <form id="site-form" class="stack">
+          <label for="site-input">Site ekle</label>
+          <div class="inline-control">
+            <input id="site-input" type="text" spellcheck="false" autocomplete="off" placeholder="siem.example.com ya da https://*.example.com">
+            <button type="submit">İzin ver</button>
+          </div>
+          <div class="row">
+            <button type="button" id="site-all" class="secondary">Tüm sitelerde çalıştır</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="sec-share" aria-labelledby="share-title">
+        <div class="section-head">
+          <div>
+            <h2 id="share-title">Ayarları paylaş</h2>
+            <p class="hint">
+              Excel şablonu, hazır notlar, süreler ve site listesi bir dosyaya kaydedilir; ekip arkadaşınız içe aktarır.
+              API anahtarı, geçmiş ve Excel listesi dosyaya <strong>girmez</strong>.
+            </p>
+          </div>
+        </div>
+        <div class="row">
+          <button type="button" id="settings-export" class="secondary">Ayarları dışa aktar</button>
+          <button type="button" id="settings-import" class="secondary">Ayar dosyası içe aktar</button>
+          <input type="file" id="settings-file" accept="application/json,.json" hidden>
+          <button type="button" id="settings-grant-sites" hidden></button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <p id="message" class="toast" role="status" aria-live="polite"></p>
 </body>
 </html>

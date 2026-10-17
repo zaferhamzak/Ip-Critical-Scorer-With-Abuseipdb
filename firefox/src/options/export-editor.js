@@ -63,7 +63,7 @@ function renderColumns() {
   const list = $("export-columns");
   list.replaceChildren();
   template.columns.forEach((col, i) => {
-    const li = el("li");
+    const li = el("li", { className: col.kind === "field" ? "kind-field" : "kind-custom" });
     const header = el("input", { type: "text", maxLength: 100, value: col.kind === "field" ? col.header ?? "" : col.header });
     header.placeholder = col.kind === "field" ? fieldName(col.field) : "Sütun başlığı";
     header.setAttribute("aria-label", `${i + 1}. sütun başlığı`);
@@ -73,8 +73,11 @@ function renderColumns() {
     });
 
     let second;
+    const source = el("div", { className: "source" });
     if (col.kind === "field") {
-      second = el("span", { className: "kind" }, `Alan: ${fieldName(col.field)}`);
+      const alias = tools.FIELD_LIST.find((f) => f.key === col.field)?.alias;
+      source.append(el("span", { className: "badge" }, "Alan"), el("span", { className: "kind" }, fieldName(col.field)));
+      if (alias) source.append(el("code", { className: "alias-code" }, `{${alias}}`));
     } else {
       second = el("input", { type: "text", maxLength: tools.MAX_VALUE_TEXT, value: col.value, placeholder: "Sabit değer ya da {ip} gibi alias (boş bırakılabilir)" });
       second.setAttribute("aria-label", `${i + 1}. sütunun değeri`);
@@ -86,16 +89,17 @@ function renderColumns() {
       second.addEventListener("focus", () => {
         aliasTarget = second;
       });
+      source.append(el("span", { className: "badge custom" }, "Özel"), second);
     }
 
     const toolsBox = el("span", { className: "tools" });
-    const up = el("button", { type: "button", className: "secondary up", disabled: i === 0 }, "↑");
+    const up = el("button", { type: "button", className: "secondary icon-btn up", disabled: i === 0 }, "↑");
     up.setAttribute("aria-label", "Yukarı taşı");
     up.addEventListener("click", () => move(i, -1));
-    const down = el("button", { type: "button", className: "secondary down", disabled: i === template.columns.length - 1 }, "↓");
+    const down = el("button", { type: "button", className: "secondary icon-btn down", disabled: i === template.columns.length - 1 }, "↓");
     down.setAttribute("aria-label", "Aşağı taşı");
     down.addEventListener("click", () => move(i, 1));
-    const remove = el("button", { type: "button", className: "secondary", disabled: template.columns.length === 1 }, "×");
+    const remove = el("button", { type: "button", className: "secondary icon-btn remove", disabled: template.columns.length === 1 }, "×");
     remove.setAttribute("aria-label", "Sütunu kaldır");
     remove.addEventListener("click", () => {
       template.columns.splice(i, 1);
@@ -104,7 +108,7 @@ function renderColumns() {
     });
     toolsBox.append(up, down, remove);
 
-    li.append(header, second, toolsBox);
+    li.append(el("span", { className: "num" }, String(i + 1)), header, source, toolsBox);
     list.append(li);
   });
   const full = template.columns.length >= tools.MAX_COLUMNS;
@@ -126,18 +130,15 @@ function renderPreview() {
 }
 
 function renderAliases() {
-  const body = $("alias-list");
-  body.replaceChildren();
+  const grid = $("alias-list");
+  grid.replaceChildren();
   for (const f of tools.FIELD_LIST) {
-    const button = el("button", { type: "button", className: "secondary alias" }, `{${f.alias}}`);
-    button.title = "Son seçilen özel sütuna ekle";
-    button.addEventListener("click", () => insertAlias(f.alias));
     const sample = tools.buildRow({ columns: [{ kind: "custom", header: "x", value: `{${f.alias}}` }], empty: "dash", separator: "tab" }, SAMPLE);
-    const tr = el("tr");
-    const tdAlias = el("td");
-    tdAlias.append(button);
-    tr.append(tdAlias, el("td", {}, f.header), el("td", {}, sample));
-    body.append(tr);
+    const button = el("button", { type: "button", className: "alias-card" });
+    button.title = `${f.header} · son seçilen özel sütuna ekle`;
+    button.append(el("code", {}, `{${f.alias}}`), el("span", { className: "alias-name" }, f.header), el("span", { className: "alias-sample" }, sample));
+    button.addEventListener("click", () => insertAlias(f.alias));
+    grid.append(button);
   }
 }
 
